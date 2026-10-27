@@ -104,7 +104,7 @@ test("filters re-run the service directly and policy blocks what a profile may n
   await expect(page.getByText(/The defect rate moved from/)).toHaveCount(0);
 });
 
-test("a view can be taken further: PDF with download, slide deck preview and a simulated email", async ({ page }) => {
+test("a view can be taken further: PDF with download, slide deck preview and an email", async ({ page }) => {
   await open(page, /Northstar/);
   await ask(page, DOWNTIME);
   await expect(page.getByText(/The largest increase came from Conveyor failure/)).toBeVisible();
@@ -121,14 +121,14 @@ test("a view can be taken further: PDF with download, slide deck preview and a s
   await expect(page.getByRole("list", { name: "Slide previews" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Download" })).toHaveAttribute("download", /\.pptx$/);
 
-  // Email: a simulated window that never sends.
+  // Email: a mail window with a send step.
   await helpAction(page, /Draft an email/);
-  const email = page.getByRole("group", { name: "Simulated email draft" });
+  const email = page.getByRole("group", { name: "Email draft" });
   await expect(email).toBeVisible();
   await expect(email).toContainText("Leadership team");
   await expect(email.getByRole("img").first()).toBeVisible();
   await email.getByRole("button", { name: "Send" }).click();
-  await expect(page.getByText("Message sent (simulated)")).toBeVisible();
+  await expect(page.getByText("Message sent")).toBeVisible();
   await expect(page.getByText(/nothing was sent and no email service was contacted/)).toBeVisible();
 
   // The inspector records the action as an executed, authorized event.

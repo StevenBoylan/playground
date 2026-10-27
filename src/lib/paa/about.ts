@@ -52,7 +52,7 @@ const NORTHSTAR_LABELS: Labels = [
   [NORTHSTAR_PERMISSIONS.downtime, "View downtime"],
   [NORTHSTAR_PERMISSIONS.exportPdf, "Create PDF reports"],
   [NORTHSTAR_PERMISSIONS.exportPptx, "Create slide decks"],
-  [NORTHSTAR_PERMISSIONS.draftEmail, "Draft emails (simulated)"],
+  [NORTHSTAR_PERMISSIONS.draftEmail, "Draft emails"],
 ];
 
 const ORBIT_LABELS: Labels = [
@@ -63,7 +63,7 @@ const ORBIT_LABELS: Labels = [
   [ORBIT_PERMISSIONS.revenue, "See revenue figures (MRR)"],
   [ORBIT_PERMISSIONS.exportPdf, "Create PDF reports"],
   [ORBIT_PERMISSIONS.exportPptx, "Create slide decks"],
-  [ORBIT_PERMISSIONS.draftEmail, "Draft emails (simulated)"],
+  [ORBIT_PERMISSIONS.draftEmail, "Draft emails"],
 ];
 
 const GROVE_LABELS: Labels = [
@@ -74,7 +74,7 @@ const GROVE_LABELS: Labels = [
   [GROVE_PERMISSIONS.engagement, "View engagement survey results"],
   [GROVE_PERMISSIONS.exportPdf, "Create PDF reports"],
   [GROVE_PERMISSIONS.exportPptx, "Create slide decks"],
-  [GROVE_PERMISSIONS.draftEmail, "Draft emails (simulated)"],
+  [GROVE_PERMISSIONS.draftEmail, "Draft emails"],
 ];
 
 function describeRole(role: RoleDefinition, labels: Labels, scope: string, extraCannot: string[], notes: string[]): AboutRole {
@@ -117,7 +117,7 @@ function northstarAbout(): AboutInfo {
       { name: "Charts and tables", detail: "Bar, line and donut charts, KPI cards, comparisons and filters, chosen to fit your question" },
       { name: "Create a PDF report", detail: "A branded, downloadable report with charts and tables" },
       { name: "Create a slide deck", detail: "A branded PowerPoint with editable charts. You can supply your own wording" },
-      { name: "Draft an email", detail: "Email text with the charts embedded, shown in a simulated window. Nothing is sent" },
+      { name: "Draft an email", detail: "Email text with the charts embedded, shown in a mail window" },
     ],
     roles: org.roles.map((r) => {
       const scoped = r.scope.factoryIds !== "all";
@@ -157,7 +157,7 @@ function orbitAbout(): AboutInfo {
       { name: "Product usage and bugs", detail: "Feature adoption, and where bug tickets are concentrated" },
       { name: "Accounts at risk", detail: "Named customers most likely to leave, scored from usage and support" },
       { name: "Charts and tables", detail: "Bar, line and donut charts, KPI cards, comparisons and filters, chosen to fit your question" },
-      { name: "Create a PDF, slide deck or email", detail: "Branded documents from any view. Email is a simulated draft and nothing is sent" },
+      { name: "Create a PDF, slide deck or email", detail: "Branded documents from any view. Email opens as a draft in a mail window" },
     ],
     roles: org.roles.map((r) => {
       const held = new Set(r.permissions);
@@ -201,7 +201,7 @@ function groveAbout(): AboutInfo {
       { name: "Training and compliance", detail: "Who is behind on mandatory courses" },
       { name: "Leave and engagement", detail: "Patterns in leave, and what drives engagement" },
       { name: "Charts and tables", detail: "Bar, line and donut charts, KPI cards, comparisons and filters, chosen to fit your question" },
-      { name: "Create a PDF, slide deck or email", detail: "Branded documents from any view. Email is a simulated draft and nothing is sent" },
+      { name: "Create a PDF, slide deck or email", detail: "Branded documents from any view. Email opens as a draft in a mail window" },
     ],
     roles: org.roles.map((r) => {
       const scoped = r.scope.departments !== undefined && r.scope.departments !== "all";

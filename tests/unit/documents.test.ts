@@ -152,7 +152,7 @@ describe("model-authored deliverables are validated like views", () => {
     expect(r.ok).toBe(true);
   });
 
-  it("builds a simulated email with example-domain addresses", () => {
+  it("builds an email with example-domain addresses", () => {
     const r = resolveDeliverable(
       { kind: "email", title: "Update", to: ["Leadership team", "Ops <ops@northstar.example>"], subject: "Weekly update", blocks: [{ type: "paragraph", template: "Hello." }] },
       { results: {} },

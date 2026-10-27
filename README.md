@@ -6,7 +6,7 @@ trusted services compute the answer, and a purpose-built interface is composed o
 
 > **Agents decide. Services execute. Policies constrain.**
 
-Everything in the demo is fictional and synthetic. Nothing is real data, and nothing is ever sent anywhere.
+Everything in the demo is fictional and synthetic. Nothing is real data.
 
 ## What it shows
 
@@ -22,8 +22,8 @@ Each company has four years of deterministic synthetic data with planted stories
 hiring freeze) so there is something real to discover.
 
 The interface is deliberately one control: say what you want. There is no dashboard to navigate. Anything you can
-see can also be turned into a branded **PDF**, a branded **PowerPoint** with native charts, or a simulated **email
-draft** (never sent). Who you are is a profile menu; switching it re-runs what is on screen under that profile's
+see can also be turned into a branded **PDF**, a branded **PowerPoint** with native charts, or an **email
+draft**. Who you are is a profile menu; switching it re-runs what is on screen under that profile's
 permissions.
 
 ## How it works

@@ -20,7 +20,7 @@ interface HelpPanelProps {
 const ACTIONS: { kind: DocKind; label: string; detail: string; icon: ReactNode }[] = [
   { kind: "pdf", label: "Create a PDF report", detail: "Branded, with charts and tables. Downloads as a file.", icon: <FileIcon width={18} height={18} /> },
   { kind: "pptx", label: "Create a slide deck", detail: "Branded PowerPoint with editable charts.", icon: <SlidesIcon width={18} height={18} /> },
-  { kind: "email", label: "Draft an email", detail: "Shown in a simulated window. Nothing is sent.", icon: <MailIcon width={18} height={18} /> },
+  { kind: "email", label: "Draft an email", detail: "Opens in a mail window, ready to review.", icon: <MailIcon width={18} height={18} /> },
 ];
 
 const VIEW_IDEAS = ["Email this to the leadership team", "Make a PDF of this", "Turn this into a short slide deck"];

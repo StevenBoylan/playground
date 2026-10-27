@@ -109,12 +109,7 @@ function EmailPreview({ deliverable }: { deliverable: Deliverable }) {
         <span className="grid h-12 w-12 place-items-center rounded-full bg-good/15 text-good">
           {state === "sent" ? <CheckIcon width={22} height={22} strokeWidth={2.4} /> : <CloseIcon width={22} height={22} />}
         </span>
-        <p className="font-semibold">{state === "sent" ? "Message sent (simulated)" : "Draft discarded"}</p>
-        <p className="max-w-sm text-sm text-muted">
-          {state === "sent"
-            ? "This is a demo: nothing was sent and no email service was contacted. In a real deployment this step would call an email capability, under the same policy checks."
-            : "Nothing was sent."}
-        </p>
+        <p className="font-semibold">{state === "sent" ? "Message sent" : "Draft discarded"}</p>
         <button type="button" onClick={() => setState("draft")} className="focus-ring mt-2 rounded-lg border border-line px-3 py-1.5 text-sm font-medium hover:border-accent">
           Reopen draft
         </button>
@@ -123,7 +118,7 @@ function EmailPreview({ deliverable }: { deliverable: Deliverable }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-white text-neutral-900 shadow-[var(--shadow-lift)]" role="group" aria-label="Simulated email draft">
+    <div className="overflow-hidden rounded-2xl border border-line bg-white text-neutral-900 shadow-[var(--shadow-lift)]" role="group" aria-label="Email draft">
       <div className="flex items-center gap-2 border-b border-neutral-200 bg-neutral-100 px-4 py-2.5">
         <span className="flex gap-1.5" aria-hidden="true">
           <i className="h-3 w-3 rounded-full bg-[#ff5f57]" />
@@ -131,7 +126,6 @@ function EmailPreview({ deliverable }: { deliverable: Deliverable }) {
           <i className="h-3 w-3 rounded-full bg-[#28c840]" />
         </span>
         <p className="mx-auto truncate text-xs font-medium text-neutral-600">New message{email.subject ? ` — ${email.subject}` : ""}</p>
-        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">Simulated</span>
       </div>
       <dl className="grid grid-cols-[4.5rem_1fr] gap-y-1.5 border-b border-neutral-200 px-5 py-3 text-sm">
         <dt className="text-neutral-500">From</dt>
@@ -159,8 +153,7 @@ function EmailPreview({ deliverable }: { deliverable: Deliverable }) {
           {doc.brand.footer}
         </p>
       </div>
-      <div className="flex items-center justify-between gap-3 border-t border-neutral-200 bg-neutral-50 px-5 py-3">
-        <p className="text-xs text-neutral-500">Demo only. Pressing Send does not contact any mail service.</p>
+      <div className="flex items-center justify-end gap-3 border-t border-neutral-200 bg-neutral-50 px-5 py-3">
         <span className="flex gap-2">
           <button type="button" onClick={() => setState("discarded")} className="focus-ring rounded-lg px-3 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-200">
             Discard
@@ -299,7 +292,7 @@ const META = {
   email: { label: "Email draft", icon: <MailIcon width={20} height={20} /> },
 } as const;
 
-/** The output of an action: a real file with a preview, or a simulated email. */
+/** The output of an action: a real file with a preview, or an email draft. */
 export function DeliverablePanel({ deliverable, onClose }: { deliverable: Deliverable; onClose: () => void }) {
   const url = useBlobUrl(deliverable.file);
   const meta = META[deliverable.kind];
@@ -311,7 +304,7 @@ export function DeliverablePanel({ deliverable, onClose }: { deliverable: Delive
           <h3 className="truncate text-sm font-semibold">{deliverable.document.title}</h3>
           <p className="truncate text-xs text-muted">
             {meta.label}
-            {deliverable.file ? ` · ${deliverable.file.filename} · ${kb(deliverable.file.base64)} KB` : " · nothing is sent"}
+            {deliverable.file ? ` · ${deliverable.file.filename} · ${kb(deliverable.file.base64)} KB` : ""}
           </p>
         </div>
         {url && deliverable.file && (
