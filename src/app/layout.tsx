@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Geist, Geist_Mono } from "next/font/google";
-import { GithubIcon } from "@/components/shared/icons";
+import { Geist, Geist_Mono, Montserrat } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,6 +13,15 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// The header carries the stevenboylan.eu look: Montserrat, black and the site's green.
+const montserrat = Montserrat({
+  variable: "--font-montserrat",
+  subsets: ["latin"],
+  weight: ["500", "800"],
+});
+
+const SITE = "https://stevenboylan.eu";
+
 export const metadata: Metadata = {
   title: "Playground",
   description: "Open-source concept demos by Steven Boylan.",
@@ -22,32 +30,38 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${montserrat.variable} h-full antialiased`}>
       <body className="app-bg flex min-h-full flex-col">
         <header className="sticky top-0 z-20 border-b border-line bg-bg/75 backdrop-blur-md">
           <nav className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 sm:px-6" aria-label="Main">
-            <Link href="/" className="focus-ring flex items-center gap-2.5 rounded-lg font-semibold tracking-tight">
-              <span
-                aria-hidden="true"
-                className="grid h-7 w-7 place-items-center rounded-lg text-sm font-bold text-white shadow-sm"
-                style={{ background: "linear-gradient(135deg, #2563eb, #8b5cf6)" }}
-              >
-                P
-              </span>
-              Playground
-            </Link>
-            <a
-              href="https://github.com/StevenBoylan/playground"
-              className="focus-ring flex items-center gap-2 rounded-lg px-2 py-1 text-sm text-muted transition-colors hover:text-ink"
+            <Link
+              href="/"
+              aria-label="playground.stevenboylan, home"
+              className="focus-ring flex items-center gap-3 rounded-lg font-[family-name:var(--font-montserrat)] font-extrabold leading-none"
             >
-              <GithubIcon width={18} height={18} />
-              <span className="hidden sm:inline">Open source</span>
-            </a>
+              <span aria-hidden="true" className="text-xl tracking-tight text-ink">
+                <span className="text-[#00d285]">_</span>p.<span className="text-[#00d285]">SB</span>
+              </span>
+              <span className="hidden text-base tracking-tight text-ink sm:inline">
+                playground.steven<span className="text-[#00d285]">boylan</span>
+              </span>
+            </Link>
+            <div className="flex items-center gap-1 font-[family-name:var(--font-montserrat)] text-sm font-medium sm:gap-3">
+              <a href={SITE} className="focus-ring rounded-lg px-2 py-1 text-muted transition-colors hover:text-ink">
+                Back to home
+              </a>
+              <a href={`${SITE}/contact-me/`} className="focus-ring rounded-lg px-2 py-1 text-muted transition-colors hover:text-ink">
+                Contact me
+              </a>
+            </div>
           </nav>
         </header>
         <div className="flex-1">{children}</div>
         <footer className="border-t border-line py-6 text-center text-xs text-muted">
-          All companies and data in these demos are fictional.
+          All companies and data in these demos are fictional.{" "}
+          <a href="https://github.com/StevenBoylan/playground" className="focus-ring rounded underline underline-offset-2 hover:text-ink">
+            Open source on GitHub
+          </a>
         </footer>
       </body>
     </html>
