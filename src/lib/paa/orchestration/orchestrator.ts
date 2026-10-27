@@ -2,9 +2,17 @@ import { getCapability } from "../capabilities/registry";
 import { getOrganization } from "../organizations";
 import type { Envelope } from "../schemas/bindings";
 import type { Session } from "../schemas/capability";
-import { validateExperience, type ExperienceComponent, type ExperienceSpec } from "../schemas/experience";
+import type { ExperienceComponent, ExperienceSpec } from "../schemas/experience";
 import type { Decision, Trace } from "../schemas/trace";
-import { blockedComponents, executePlan, PlanError, scopeNotice, type PlanExecution, type PlannedCall } from "./execute";
+import {
+  blockedComponents,
+  executePlan,
+  PlanError,
+  scopeNotice,
+  validateForOrganization,
+  type PlanExecution,
+  type PlannedCall,
+} from "./execute";
 import { ModelError, type ModelAdapter } from "./model-adapter";
 import { candidateExperience, plannedCalls, type ModelPlan } from "./plan";
 import type { PlanContext } from "./prompt";
@@ -100,7 +108,7 @@ async function attempt(session: Session, plan: ModelPlan): Promise<Attempt> {
   const candidate = candidateExperience(plan);
   if (candidate === undefined) return { calls, execution, candidate, errors: ["The plan has no experience"] };
 
-  const validated = validateExperience(candidate, execution.envelope);
+  const validated = validateForOrganization(session.organizationId, candidate, execution.envelope);
   if (!validated.ok) errors.push(...validated.errors);
   else errors.push(...checkFilterBars(validated.spec.components, calls));
   return { calls, execution, candidate, errors };
@@ -178,7 +186,8 @@ export async function runIntent(options: IntentOptions): Promise<IntentResult> {
 
   // A policy denial yields an honest blocked view, never fabricated data.
   if (execution.executions.some((e) => e.status === "denied")) {
-    const blocked = validateExperience(
+    const blocked = validateForOrganization(
+      session.organizationId,
       {
         version: "1",
         title: plan.experience?.title ?? "Request blocked",
@@ -198,14 +207,14 @@ export async function runIntent(options: IntentOptions): Promise<IntentResult> {
     return { kind: "error", message: FRIENDLY_FAILURE };
   }
 
-  const validated = validateExperience(result.candidate, execution.envelope);
+  const validated = validateForOrganization(session.organizationId, result.candidate, execution.envelope);
   if (!validated.ok) return { kind: "error", message: FRIENDLY_FAILURE };
 
   // Policy narrowing is a system fact, so it is shown whether or not the model mentioned it.
   let spec = validated.spec;
   if (execution.narrowed && !spec.components.some((c) => c.type === "Notice" && c.id === "scope")) {
     const components = [spec.components[0], scopeNotice(), ...spec.components.slice(1)];
-    const withNotice = validateExperience({ ...spec, components }, execution.envelope);
+    const withNotice = validateForOrganization(session.organizationId, { ...spec, components }, execution.envelope);
     if (withNotice.ok) spec = withNotice.spec;
   }
   trace.experience = treeOf(spec);

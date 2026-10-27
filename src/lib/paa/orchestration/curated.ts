@@ -2,10 +2,10 @@ import { monthLabel } from "../dates";
 import { REFERENCE_DATE } from "../data/seed";
 import { getOrganization } from "../organizations";
 import type { Envelope } from "../schemas/bindings";
-import { validateExperience, type ExperienceComponent, type ExperienceSpec } from "../schemas/experience";
+import type { ExperienceComponent, ExperienceSpec } from "../schemas/experience";
 import type { Session } from "../schemas/capability";
 import type { Decision, Trace } from "../schemas/trace";
-import { blockedComponents, executePlan, scopeNotice, type PlannedCall } from "./execute";
+import { blockedComponents, executePlan, scopeNotice, validateForOrganization, type PlannedCall } from "./execute";
 import { lastMonth, lastQuarter, thisMonth } from "./windows";
 
 interface CuratedCall extends PlannedCall {
@@ -262,7 +262,7 @@ export async function runCurated(session: Session, promptId: string): Promise<Cu
     ],
   };
 
-  const validated = validateExperience(candidate, envelope);
+  const validated = validateForOrganization(session.organizationId, candidate, envelope);
   if (!validated.ok) throw new RunError(`Composed experience failed validation: ${validated.errors.join("; ")}`);
 
   return {

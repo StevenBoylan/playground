@@ -105,8 +105,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /** Free text must not carry figures; numbers may only arrive through bound slots. */
-function checkFreeText(componentId: string, value: string, envelope: Envelope, errors: string[]): void {
-  if (/\d/.test(value.replace(SLOT_PATTERN, ""))) {
+function checkFreeText(
+  componentId: string,
+  value: string,
+  envelope: Envelope,
+  errors: string[],
+  allowedNames: string[],
+): void {
+  // Entity names such as "Gdansk Line 2" are labels, not figures, so their digits are allowed.
+  let text = value.replace(SLOT_PATTERN, "");
+  for (const name of allowedNames) text = text.split(name).join("");
+  if (/\d/.test(text)) {
     errors.push(`${componentId}: free text contains a number outside a {{slot}}`);
   }
   for (const match of value.matchAll(SLOT_PATTERN)) {
@@ -147,7 +156,14 @@ function checkRows(
 }
 
 /** Validates an untrusted UI specification against the result envelope it will be rendered from. */
-export function validateExperience(raw: unknown, envelope: Envelope): ValidationResult {
+export interface ValidationOptions {
+  /** Names (factories, lines) that may appear in free text even though they contain digits. */
+  allowedNames?: string[];
+}
+
+export function validateExperience(raw: unknown, envelope: Envelope, options: ValidationOptions = {}): ValidationResult {
+  // Longest first, so "Gdansk Line 2" is removed before any shorter name could split it.
+  const allowedNames = [...(options.allowedNames ?? [])].sort((a, b) => b.length - a.length);
   const parsed = ExperienceSchema.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, errors: parsed.error.issues.map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`) };
@@ -162,11 +178,11 @@ export function validateExperience(raw: unknown, envelope: Envelope): Validation
 
     switch (c.type) {
       case "Narrative":
-        checkFreeText(c.id, c.template, envelope, errors);
+        checkFreeText(c.id, c.template, envelope, errors, allowedNames);
         break;
       case "Notice":
       case "EmptyState":
-        checkFreeText(c.id, c.text, envelope, errors);
+        checkFreeText(c.id, c.text, envelope, errors, allowedNames);
         break;
       case "KpiCard": {
         const value = isValidRefSyntax(c.dataRef) ? resolveRef(envelope, c.dataRef) : undefined;

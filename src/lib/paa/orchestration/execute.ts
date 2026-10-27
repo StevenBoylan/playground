@@ -1,10 +1,16 @@
 import { executeCapability } from "../capabilities/registry";
+import { entityNames } from "../organizations";
 import type { Envelope } from "../schemas/bindings";
-import { CALL_KEY_PATTERN, type ExperienceComponent } from "../schemas/experience";
+import { CALL_KEY_PATTERN, validateExperience, type ExperienceComponent, type ValidationResult } from "../schemas/experience";
 import type { Session } from "../schemas/capability";
 import type { ExecutionRecord } from "../schemas/trace";
 
 export const MAX_CALLS = 4;
+
+/** Validates a UI spec for an organization, allowing that organization's entity names in free text. */
+export function validateForOrganization(organizationId: string, raw: unknown, envelope: Envelope): ValidationResult {
+  return validateExperience(raw, envelope, { allowedNames: entityNames(organizationId) });
+}
 
 export interface PlannedCall {
   key: string;

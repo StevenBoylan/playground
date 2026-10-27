@@ -3,6 +3,8 @@ import { DATA_START, DOWNTIME_CAUSES, REFERENCE_DATE, getNorthstarDataset } from
 import { previousMonth } from "../dates";
 import { getOrganization } from "../organizations";
 import type { ExperienceSpec } from "../schemas/experience";
+import { z } from "zod";
+import { ModelPlanSchema } from "./plan";
 import { lastMonth, lastQuarter, thisMonth } from "./windows";
 
 export interface PreviousTurn {
@@ -81,7 +83,7 @@ ${capabilities}
 
 Components:
 - PageHeading { text, subtitle? } - exactly one, first. Plain text: put the period in the subtitle.
-- Narrative { template } - one or two sentences that answer the question. Numbers and names come only from slots like {{results.production.summary.totalUnits|integer}} or {{results.defects.summary.worstLineLabel|text}}. Formats: integer, number, percent, minutes, text. Do NOT type any digit outside a slot: write "three factories" or "the last quarter", never "3 factories" or "Q3".
+- Narrative { template } - one or two sentences that answer the question. Numbers and names come only from slots like {{results.production.summary.totalUnits|integer}} or {{results.defects.summary.worstLineLabel|text}}. Formats: integer, number, percent, minutes, text. Do NOT type any figure outside a slot: write "three factories" or "the last quarter", never "3 factories" or "Q3", and never write years, dates or percentages as digits. Factory and line names such as "Gdansk Line 2" are labels and may be written as normal text.
 - KpiCard { title, dataRef, format } - one headline figure.
 - Comparison { title, currentLabel, previousLabel, currentRef, previousRef, format, higherIs } - two figures side by side with the change. higherIs says whether an increase is "good", "bad" or "neutral".
 - LineChart { title, dataRef, xField, yField, format? } - change over time; dataRef is a list, xField is a text field, yField a numeric one.
@@ -100,7 +102,13 @@ Design for the question, not a template. A single-fact question deserves a Narra
 When "current view" and "previous requests" are provided and the new request refines them ("only Gdansk", "show it by month", "as a table", "compare with last quarter"), keep the previous intent and change only what was asked. Always output the complete plan and experience again, not a diff. If the request is unrelated to the current view, start fresh.
 
 ## Output
-Return only the structured plan. For "clarify" and "unsupported" give a "message", an empty "calls" list, and omit "experience".`;
+Reply with exactly one JSON object and nothing else: no markdown fences, no commentary before or after. It must match this JSON Schema:
+${JSON.stringify(compact(z.toJSONSchema(ModelPlanSchema, { io: "input", unrepresentable: "any" })))}
+
+Omit optional fields you do not need instead of writing null. For "clarify" and "unsupported" give a "message", an empty "calls" list, and omit "experience".
+
+Example of a good reply:
+{"status":"ok","intent":"Show how Gdansk Line 2's defect rate changed week by week.","assumptions":["Used the last quarter."],"calls":[{"key":"trend","capabilityId":"northstar.defect_trend","rationale":"Defect rate over time for one line.","input":{"dateFrom":"2026-07-01","dateTo":"2026-09-30","granularity":"week","lineId":"gdansk-2"}}],"experience":{"title":"Gdansk Line 2 quality","components":[{"type":"PageHeading","id":"heading","text":"Gdansk Line 2 quality","subtitle":"Weekly defect rate"},{"type":"Narrative","id":"summary","template":"The defect rate moved from {{results.trend.summary.firstPeriodRate|percent}} to {{results.trend.summary.lastPeriodRate|percent}}."},{"type":"LineChart","id":"rate-line","title":"Defect rate by week","dataRef":"results.trend.rows","xField":"label","yField":"defectRate","format":"percent"}]}}`;
 }
 
 /** The request-specific part: visitor text, plus the current view and recent turns for follow-ups. */

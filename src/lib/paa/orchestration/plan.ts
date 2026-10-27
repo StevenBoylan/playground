@@ -126,3 +126,37 @@ export function candidateExperience(plan: ModelPlan): unknown {
     "components"
   > & { components: unknown[] };
 }
+
+/** Removes null values the model may emit for optional fields, at any depth. */
+function stripNulls(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stripNulls);
+  if (typeof value === "object" && value !== null) {
+    return Object.fromEntries(Object.entries(value).filter(([, v]) => v !== null).map(([k, v]) => [k, stripNulls(v)]));
+  }
+  return value;
+}
+
+/** Finds the JSON object in a model reply, tolerating markdown fences or a stray sentence around it. */
+function extractJsonObject(text: string): unknown {
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start < 0 || end <= start) throw new Error("no JSON object found");
+  return JSON.parse(text.slice(start, end + 1));
+}
+
+export type ParsedPlan = { ok: true; plan: ModelPlan } | { ok: false; error: string };
+
+/** Parses and validates a model reply as a plan. The strict schemas elsewhere still gate what is run or shown. */
+export function parsePlanText(text: string): ParsedPlan {
+  let raw: unknown;
+  try {
+    raw = extractJsonObject(text);
+  } catch (error) {
+    return { ok: false, error: `The reply was not valid JSON (${error instanceof Error ? error.message : "parse error"}).` };
+  }
+  const parsed = ModelPlanSchema.safeParse(stripNulls(raw));
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues.slice(0, 8).map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`).join("; ") };
+  }
+  return { ok: true, plan: parsed.data };
+}

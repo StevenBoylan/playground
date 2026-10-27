@@ -1,3 +1,4 @@
+import { getNorthstarDataset } from "./data/seed";
 import { northstarRoles, type RoleDefinition } from "./policies/roles";
 
 export interface OrganizationConfig {
@@ -40,6 +41,13 @@ export const organizations: OrganizationConfig[] = [
     roles: [],
   },
 ];
+
+/** Names of an organization's entities. They are labels, so free text may mention them. */
+export function entityNames(organizationId: string): string[] {
+  if (organizationId !== "northstar") return [];
+  const ds = getNorthstarDataset();
+  return [...ds.factories.map((f) => f.name), ...ds.lines.map((l) => l.name)];
+}
 
 export function getOrganization(id: string): OrganizationConfig | undefined {
   return organizations.find((o) => o.id === id);

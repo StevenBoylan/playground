@@ -92,3 +92,16 @@ describe("experience validation", () => {
     expect(validateExperience({ version: "2", title: "x", components: [] }, envelope).ok).toBe(false);
   });
 });
+
+describe("entity names in free text", () => {
+  const names = ["Gdansk Line 2", "Dublin Plant"];
+  const narrative = (template: string) => ({ version: "1", title: "T", components: [{ type: "Narrative", id: "n", template }] });
+
+  it("allows known names that contain digits but still rejects other figures", () => {
+    const ok = validateExperience(narrative("Gdansk Line 2 is the weak spot."), envelope, { allowedNames: names });
+    expect(ok.ok).toBe(true);
+    expect(validateExperience(narrative("Gdansk Line 2 is the weak spot."), envelope).ok).toBe(false);
+    expect(validateExperience(narrative("Gdansk Line 2 rose 14% in 2026."), envelope, { allowedNames: names }).ok).toBe(false);
+    expect(validateExperience(narrative("Gdansk Line 3 is fine."), envelope, { allowedNames: names }).ok).toBe(false);
+  });
+});

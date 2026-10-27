@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { MAX_CALLS, blockedComponents, executePlan, PlanError, scopeNotice } from "@/lib/paa/orchestration/execute";
-import { ExperienceSchema, validateExperience } from "@/lib/paa/schemas/experience";
+import { MAX_CALLS, blockedComponents, executePlan, PlanError, scopeNotice, validateForOrganization } from "@/lib/paa/orchestration/execute";
+import { ExperienceSchema } from "@/lib/paa/schemas/experience";
 import { clientKey, createRateLimiter } from "@/lib/shared/rate-limit";
 
 const MAX_BODY_BYTES = 32 * 1024;
@@ -56,10 +56,11 @@ export async function POST(request: Request) {
             : body.data.experience.components.filter((c) => !(c.id === "scope" && !execution.narrowed)),
         };
 
-    let validated = validateExperience(candidate, execution.envelope);
+    let validated = validateForOrganization(session.organizationId, candidate, execution.envelope);
     if (!validated.ok) {
       // The old layout no longer fits the new data; show an honest blocked view instead.
-      validated = validateExperience(
+      validated = validateForOrganization(
+        session.organizationId,
         {
           version: "1",
           title: body.data.experience.title,
