@@ -62,26 +62,37 @@ export function DynamicRenderer({
   filters?: FilterState;
 }) {
   // Consecutive KPI cards and comparisons sit side by side; everything else stacks.
-  const out: React.ReactNode[] = [];
+  const out: { key: string; node: React.ReactNode }[] = [];
   let group: ExperienceComponent[] = [];
   const flush = () => {
     if (group.length === 0) return;
-    out.push(
-      <div key={`group-${group[0].id}`} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {group.map((c) => (
-          <View key={c.id} component={c} envelope={envelope} filters={filters} />
-        ))}
-      </div>,
-    );
+    out.push({
+      key: `group-${group[0].id}`,
+      node: (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {group.map((c) => (
+            <View key={c.id} component={c} envelope={envelope} filters={filters} />
+          ))}
+        </div>
+      ),
+    });
     group = [];
   };
   for (const c of experience.components) {
     if (c.type === "KpiCard" || c.type === "Comparison") group.push(c);
     else {
       flush();
-      out.push(<View key={c.id} component={c} envelope={envelope} filters={filters} />);
+      out.push({ key: c.id, node: <View component={c} envelope={envelope} filters={filters} /> });
     }
   }
   flush();
-  return <div className="grid gap-6">{out}</div>;
+  return (
+    <div className="grid gap-5">
+      {out.map((item, i) => (
+        <div key={item.key} className="rise" style={{ animationDelay: `${Math.min(i, 8) * 70}ms` }}>
+          {item.node}
+        </div>
+      ))}
+    </div>
+  );
 }

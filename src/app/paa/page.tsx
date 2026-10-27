@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Intro } from "@/components/paa/Intro";
 import { Workspace, type OrganizationSummary } from "@/components/paa/Workspace";
 import { organizations } from "@/lib/paa/organizations";
 import { curatedPrompts } from "@/lib/paa/orchestration/curated";
@@ -17,18 +17,10 @@ const summaries: OrganizationSummary[] = organizations.map((o) => ({
 
 export default function PaaPage() {
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-10">
-      <Link href="/" className="text-sm underline">
-        ← Playground
-      </Link>
-      <h1 className="mt-4 text-3xl font-semibold">Post-Application Architecture</h1>
-      <p className="mt-1 font-medium">Software without the learning curve.</p>
-      <p className="mt-2 max-w-2xl text-sm text-neutral-600 dark:text-neutral-400">
-        Agents decide. Services execute. Policies constrain. Every figure below is computed by a typed service from
-        synthetic data; all companies and data are fictional.
-      </p>
-      <div className="mt-8">
-        <Workspace organizations={summaries} />
+    <main className="relative">
+      <div className="grid-fade pointer-events-none absolute inset-x-0 top-0 h-[460px]" aria-hidden="true" />
+      <div className="relative mx-auto w-full max-w-6xl px-4 pb-20 pt-10 sm:px-6 sm:pt-16">
+        <Workspace organizations={summaries} intro={<Intro />} />
       </div>
     </main>
   );

@@ -1,5 +1,11 @@
 import { expect, test } from "@playwright/test";
 
+// These tests exercise the curated path and are deterministic: the live-model route is answered as
+// "unavailable" at the network level, so they never spend API credits even when a key is configured.
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/paa/intent", (route) => route.fulfill({ status: 503, json: { error: "ai_unavailable" } }));
+});
+
 test("Northstar downtime journey renders from service data and respects role scope", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(String(e)));
@@ -18,7 +24,7 @@ test("Northstar downtime journey renders from service data and respects role sco
   await expect(page.getByText("northstar.downtime_breakdown").first()).toBeVisible();
 
   // Switching role re-runs the same plan under narrower policy, without the model.
-  await page.getByLabel("View as").selectOption("line_supervisor");
+  await page.getByRole("radio", { name: "Line Supervisor" }).click();
   await expect(page.getByText("Results are limited to the data this role is permitted to see.")).toBeVisible();
   await expect(page.getByText(/largest increase came from Conveyor failure/)).toHaveCount(0);
 
@@ -39,7 +45,7 @@ test("filters re-run the service directly and policy blocks what a role may not 
   await expect(page.getByText("Results are limited")).toHaveCount(0);
 
   // The same Gdansk filter under a role scoped to Dublin is denied, not silently shown.
-  await page.getByLabel("View as").selectOption("line_supervisor");
+  await page.getByRole("radio", { name: "Line Supervisor" }).click();
   await expect(page.getByText("This request could not be completed for the selected role.")).toBeVisible();
   await expect(page.getByText(/The defect rate moved from/)).toHaveCount(0);
 });
@@ -50,7 +56,6 @@ test("follow-up suggestions appear once a view exists, and free text explains wh
   await page.getByRole("button", { name: /highest defect rates/ }).click();
   await expect(page.getByRole("button", { name: "Show that as a table" })).toBeVisible();
 
-  // With no API key configured the server reports AI as unavailable and the UI says so plainly.
   await page.getByLabel("What would you like to see?").fill("Show me something new");
   await page.getByRole("button", { name: "Build" }).click();
   await expect(page.getByText(/Live AI isn.t configured/).first()).toBeVisible();
