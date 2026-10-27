@@ -151,3 +151,7 @@ vite.config.ts.timestamp-*
 # Next.js / Vercel
 .vercel
 next-env.d.ts
+
+# Playwright
+test-results/
+playwright-report/
