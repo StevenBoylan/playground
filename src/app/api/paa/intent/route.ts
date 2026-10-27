@@ -2,10 +2,11 @@ import { z } from "zod";
 import { runIntent, type IntentEvent, type IntentResult } from "@/lib/paa/orchestration/orchestrator";
 import { getModelAdapter } from "@/lib/paa/orchestration/model-adapter";
 import { ExperienceSchema } from "@/lib/paa/schemas/experience";
-import { clientKey, createRateLimiter } from "@/lib/shared/rate-limit";
+import { clientKey, createDailyBudget, createRateLimiter, dailyCapFromEnv } from "@/lib/shared/rate-limit";
 
 const MAX_BODY_BYTES = 16 * 1024;
 const limiter = createRateLimiter(12, 60_000);
+const dailyBudget = createDailyBudget(dailyCapFromEnv());
 
 const Body = z.strictObject({
   organizationId: z.string().max(64),
@@ -60,6 +61,9 @@ export async function POST(request: Request) {
   const context = body.data.context
     ? { turns: body.data.context.turns, experience: previousExperience.success ? previousExperience.data : undefined }
     : undefined;
+
+  // Each model call costs money, so there is a ceiling on how many the demo will make in a day.
+  if (!dailyBudget.take()) return json({ error: "The daily limit for this demo has been reached. Please try again tomorrow." }, 429);
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({

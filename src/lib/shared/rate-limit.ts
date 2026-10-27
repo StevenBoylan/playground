@@ -32,3 +32,34 @@ export function clientKey(request: Request): string {
   const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   return forwarded || request.headers.get("x-real-ip") || "local";
 }
+
+/**
+ * A cap on how many times something may happen per UTC day, kept in memory. It is a backstop for spend, not a
+ * guarantee: serverless instances each count separately, so set the provider's own spend limit as well.
+ */
+export interface DailyBudget {
+  take(): boolean;
+}
+
+export function createDailyBudget(limit: number, now: () => number = Date.now): DailyBudget {
+  let day = "";
+  let used = 0;
+  return {
+    take() {
+      const today = new Date(now()).toISOString().slice(0, 10);
+      if (today !== day) {
+        day = today;
+        used = 0;
+      }
+      if (used >= limit) return false;
+      used += 1;
+      return true;
+    },
+  };
+}
+
+/** AI_DAILY_CAP requests per day (default 300). */
+export function dailyCapFromEnv(): number {
+  const cap = Number(process.env.AI_DAILY_CAP);
+  return Number.isFinite(cap) && cap > 0 ? Math.floor(cap) : 300;
+}

@@ -74,8 +74,32 @@ fill one) and it runs through the curated path. Free-form questions need the key
 |---|---|
 | `ANTHROPIC_API_KEY` | Server-side only; never sent to the browser. Without it the live AI path is off |
 | `ANTHROPIC_MODEL` | Model for planning. Default `claude-sonnet-5-5` |
+| `DEMO_PASSWORD` | When set, the page and every API route require this password. Leave it empty locally |
+| `ACCESS_HOURS` | How long an unlock lasts. Default 12 |
+| `AI_DAILY_CAP` | Ceiling on AI requests per UTC day. Default 300 |
 
-Set a monthly spend limit for your key in the Anthropic Console before exposing the demo to anyone.
+### Keeping a public demo private
+
+A public link to a demo that calls a paid API can be found and used up in minutes, so the demo has a gate. When
+`DEMO_PASSWORD` is set:
+
+- The page **and every `/api/paa/*` route** require it, so the API cannot be called directly to spend credits.
+  Without access, pages redirect to an unlock screen and API calls get a `401`.
+- Entering the password issues a signed, `HttpOnly`, expiring cookie. The password is the signing key, so
+  **changing it signs everyone out at once**: rotate it after a talk.
+- Guessing is limited to eight attempts per ten minutes per visitor, and wrong guesses are slowed down.
+- The unlock link can only lead back into the demo, and search engines are told not to index anything.
+- `AI_DAILY_CAP` is a second backstop on how many model calls the demo will make in a day.
+
+None of this replaces a spend limit. Set one for your key in the Anthropic Console before exposing the demo to
+anyone. The in-memory limits (rate limiter, daily cap) count per server instance, so on serverless hosting each
+instance counts separately.
+
+### Deploying (for example to Vercel)
+
+Set `ANTHROPIC_API_KEY`, `DEMO_PASSWORD` (and optionally `ACCESS_HOURS`, `AI_DAILY_CAP`) as environment variables in
+the hosting project, never in the repository. To use a subdomain of your own site, add a `CNAME` record for it
+pointing at the host.
 
 ## Tests
 
@@ -111,9 +135,9 @@ tests/                      unit, integration and end-to-end
 
 ## Status
 
-Version 1. A working concept demo, not a product. Known limits: the rate limiter is in-memory (use a shared store
-when deploying to serverless hosting), and the demo has no authentication of its own, so put it behind one before
-exposing it publicly.
+A working concept demo, not a product. Known limits: the rate limiter and daily cap are in-memory (use a shared
+store when deploying to serverless hosting), and the access control is one shared password, which is right for a
+talk or a private demo but is not user authentication.
 
 ## Licence
 

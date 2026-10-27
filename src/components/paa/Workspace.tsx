@@ -84,6 +84,16 @@ const STAGE_LABEL = (e: IntentEvent): string => {
   }
 };
 
+/** Every request goes through here: if the demo has been locked (the access cookie expired), return to the unlock screen. */
+async function api(url: string, body: unknown): Promise<Response> {
+  const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (res.status === 401 && typeof window !== "undefined") {
+    window.location.assign(new URL("/unlock?next=" + encodeURIComponent("/paa"), window.location.origin).href);
+    throw new Error("Your access has expired. Please unlock the demo again.");
+  }
+  return res;
+}
+
 const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
 
 /** Applies filter overrides to a plan; an empty value removes the input. */
@@ -211,11 +221,7 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
 
   /** Suggested requests have a curated fallback so the demo still works without a configured model. */
   async function runCurated(promptId: string, request: string, role: string) {
-    const res = await fetch("/api/paa/run", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ organizationId: org?.id, roleId: role, promptId }),
-    });
+    const res = await api("/api/paa/run", { organizationId: org?.id, roleId: role, promptId });
     const body = await res.json();
     if (!res.ok) throw new Error(body.error ?? "Request failed");
     adopt(body as View, request);
@@ -234,16 +240,12 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
     setProgress([]);
     setText("");
     try {
-      const res = await fetch("/api/paa/intent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const res = await api("/api/paa/intent", {
           organizationId: org.id,
           roleId,
           text: request,
           context: view ? { turns, experience: view.base } : { turns },
-        }),
-      });
+        });
 
       if (res.status === 503) {
         setAiAvailable(false);
@@ -314,11 +316,7 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
     setError(null);
     setActionNote(null);
     try {
-      const res = await fetch("/api/paa/export", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ organizationId: org.id, roleId, kind, experience: view.base, calls: withFilters(view.calls, filters) }),
-      });
+      const res = await api("/api/paa/export", { organizationId: org.id, roleId, kind, experience: view.base, calls: withFilters(view.calls, filters) });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? "Request failed");
       const made = (body.deliverable ?? null) as Deliverable | null;
@@ -344,11 +342,7 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
     try {
       setDeliverable(null);
       setActionNote(null);
-      const res = await fetch("/api/paa/rerun", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ organizationId: org.id, roleId: role, experience: view.base, calls: withFilters(view.calls, nextFilters) }),
-      });
+      const res = await api("/api/paa/rerun", { organizationId: org.id, roleId: role, experience: view.base, calls: withFilters(view.calls, nextFilters) });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? "Request failed");
       if (seq !== requestSeq.current) return;
