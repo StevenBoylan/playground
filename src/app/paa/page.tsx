@@ -1,5 +1,6 @@
 import { Intro } from "@/components/paa/Intro";
 import { Workspace, type OrganizationSummary } from "@/components/paa/Workspace";
+import { aboutFor } from "@/lib/paa/about";
 import { organizations } from "@/lib/paa/organizations";
 import { curatedPrompts } from "@/lib/paa/orchestration/curated";
 
@@ -13,6 +14,7 @@ const summaries: OrganizationSummary[] = organizations.map((o) => ({
   available: o.available,
   roles: o.roles.map((r) => ({ id: r.id, label: r.label, description: r.description })),
   prompts: curatedPrompts.filter((p) => p.organizationId === o.id).map((p) => ({ id: p.id, text: p.text })),
+  about: aboutFor(o.id),
 }));
 
 export default function PaaPage() {

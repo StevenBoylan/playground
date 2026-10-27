@@ -15,15 +15,14 @@ import {
   LeafIcon,
   OrbitIcon,
   SendIcon,
-  FileIcon,
   LockIcon,
-  MailIcon,
-  SlidesIcon,
   SparklesIcon,
 } from "@/components/shared/icons";
+import type { AboutInfo } from "@/lib/paa/about";
 import type { Deliverable, DocKind } from "@/lib/paa/documents/types";
 import { ArchitectureInspector } from "./ArchitectureInspector";
 import { DeliverablePanel } from "./DeliverablePanel";
+import { HelpPanel } from "./HelpPanel";
 import { DynamicRenderer } from "./DynamicRenderer";
 
 export interface OrganizationSummary {
@@ -35,6 +34,7 @@ export interface OrganizationSummary {
   available: boolean;
   roles: { id: string; label: string; description: string }[];
   prompts: { id: string; text: string }[];
+  about: AboutInfo | null;
 }
 
 interface View {
@@ -411,8 +411,9 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
       <div className="grid gap-6 lg:grid-cols-[19rem_minmax(0,1fr)] lg:items-start">
         {/* Main column comes first on small screens so the composer is never buried. */}
         <section className="order-1 grid min-w-0 gap-5 lg:order-2" aria-label="Workspace">
+          <div className="flex items-stretch gap-3">
           <form
-            className="card flex items-center gap-2 p-2 pl-4 shadow-[0_0_0_4px_color-mix(in_srgb,var(--accent)_8%,transparent)] focus-within:border-accent"
+            className="card flex min-w-0 flex-1 items-center gap-2 p-2 pl-4 shadow-[0_0_0_4px_color-mix(in_srgb,var(--accent)_8%,transparent)] focus-within:border-accent"
             onSubmit={(e) => {
               e.preventDefault();
               void ask(text);
@@ -443,6 +444,17 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
               <SendIcon width={16} height={16} />
             </button>
           </form>
+          <HelpPanel
+            about={org.about}
+            roleId={roleId}
+            hasView={view !== null}
+            busy={busy}
+            acting={acting}
+            aiAvailable={aiAvailable}
+            onAction={(kind) => void exportDoc(kind)}
+            onAsk={(idea) => void ask(idea)}
+          />
+          </div>
 
           {!aiAvailable && (
             <p className="-mt-2 text-xs text-muted">Live AI isn&apos;t configured here, so only the suggested requests work.</p>
@@ -455,6 +467,7 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
 
           <div aria-live="polite" aria-busy={busy}>
             {busy && <ProgressCard steps={progress} />}
+            {acting && !busy && <ProgressCard steps={[acting === "pdf" ? "Generating the PDF" : acting === "pptx" ? "Building the slide deck" : "Drafting the email"]} />}
           </div>
 
           {actionNote && (
@@ -507,29 +520,6 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
 
           {view && (
             <div className={`grid gap-6 transition-opacity ${busy ? "opacity-50" : ""}`}>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted">Take it further</p>
-                <div className="flex flex-wrap gap-2">
-                  {(
-                    [
-                      { kind: "pdf", label: "Export PDF", icon: <FileIcon width={16} height={16} /> },
-                      { kind: "pptx", label: "Slide deck", icon: <SlidesIcon width={16} height={16} /> },
-                      { kind: "email", label: "Draft email", icon: <MailIcon width={16} height={16} /> },
-                    ] as const
-                  ).map((a) => (
-                    <button
-                      key={a.kind}
-                      type="button"
-                      disabled={busy || acting !== null}
-                      onClick={() => void exportDoc(a.kind)}
-                      className="focus-ring inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-3.5 py-2 text-sm font-medium shadow-sm transition-colors enabled:hover:border-accent disabled:opacity-60"
-                    >
-                      {acting === a.kind ? <span className="pulse-dot h-2.5 w-2.5 rounded-full bg-accent" aria-hidden="true" /> : a.icon}
-                      {a.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
               <DynamicRenderer
                 experience={view.experience}
                 envelope={view.envelope}

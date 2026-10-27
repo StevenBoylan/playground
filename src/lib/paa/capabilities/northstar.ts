@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { monthKey, monthLabel, weekLabel, weekStart } from "../dates";
+import { monthKey, monthLabel, quarterKey, quarterLabel, weekLabel, weekStart } from "../dates";
 import { METRICS, defectRate, relativeChange } from "../data/metrics";
 import {
   DATASET_VERSION,
@@ -63,7 +63,8 @@ function sum(rows: DailyOutput[]): { produced: number; defective: number } {
   );
 }
 
-function periodOf(day: string, granularity: "week" | "month"): { key: string; label: string } {
+function periodOf(day: string, granularity: "week" | "month" | "quarter"): { key: string; label: string } {
+  if (granularity === "quarter") return { key: quarterKey(day), label: quarterLabel(quarterKey(day)) };
   if (granularity === "month") return { key: monthKey(day), label: monthLabel(monthKey(day)) };
   const start = weekStart(day);
   return { key: start, label: `Week of ${weekLabel(start)}` };
@@ -92,7 +93,7 @@ export const productionSummary = defineCapability({
   id: "northstar.production_summary",
   organizationId: "northstar",
   description:
-    "Units produced and defect rate for a date range, grouped by factory, production line, week or month. Use for output volumes and comparisons between factories or lines.",
+    "Units produced and defect rate for a date range, grouped by factory, production line, week, month or quarter (four years of history). Use for output volumes and comparisons between factories or lines.",
   explanation: "Totals daily output records for the chosen window and groups them. Defect rate is computed from units, never estimated.",
   requiredPermission: NORTHSTAR_PERMISSIONS.production,
   scopeField: "factoryId",
@@ -101,7 +102,7 @@ export const productionSummary = defineCapability({
     .strictObject({
       dateFrom: date,
       dateTo: date,
-      groupBy: z.enum(["factory", "line", "week", "month"]),
+      groupBy: z.enum(["factory", "line", "week", "month", "quarter"]),
       factoryId: factoryId.optional(),
       lineId: lineId.optional(),
     })
@@ -119,7 +120,7 @@ export const productionSummary = defineCapability({
       groups.set(key, g);
     };
     for (const row of rows) {
-      if (input.groupBy === "month" || input.groupBy === "week") {
+      if (input.groupBy === "month" || input.groupBy === "week" || input.groupBy === "quarter") {
         const p = periodOf(row.date, input.groupBy);
         add(p.key, p.label, row);
       } else if (input.groupBy === "line") {
@@ -246,8 +247,8 @@ export const defectTrend = defineCapability({
   id: "northstar.defect_trend",
   organizationId: "northstar",
   description:
-    "Defect rate over time (weekly or monthly) for all lines, one factory, or one line. Use for 'how has quality changed' questions.",
-  explanation: "Groups daily output by week or month and computes defective units ÷ units produced for each period.",
+    "Defect rate over time (weekly, monthly or quarterly) for all lines, one factory, or one line. Use for 'how has quality changed' questions.",
+  explanation: "Groups daily output by week, month or quarter and computes defective units ÷ units produced for each period.",
   requiredPermission: NORTHSTAR_PERMISSIONS.defects,
   scopeField: "factoryId",
   datasetVersion: DATASET_VERSION,
@@ -255,7 +256,7 @@ export const defectTrend = defineCapability({
     .strictObject({
       dateFrom: date,
       dateTo: date,
-      granularity: z.enum(["week", "month"]),
+      granularity: z.enum(["week", "month", "quarter"]),
       factoryId: factoryId.optional(),
       lineId: lineId.optional(),
     })
@@ -447,8 +448,8 @@ export const downtimeTrend = defineCapability({
   id: "northstar.downtime_trend",
   organizationId: "northstar",
   description:
-    "Downtime minutes over time (weekly or monthly) for all lines, one factory or one line, optionally for a single cause. Use for 'how has downtime changed' questions.",
-  explanation: "Groups recorded downtime events by week or month and sums their minutes.",
+    "Downtime minutes over time (weekly, monthly or quarterly) for all lines, one factory or one line, optionally for a single cause. Use for 'how has downtime changed' questions.",
+  explanation: "Groups recorded downtime events by week, month or quarter and sums their minutes.",
   requiredPermission: NORTHSTAR_PERMISSIONS.downtime,
   scopeField: "factoryId",
   datasetVersion: DATASET_VERSION,
@@ -456,7 +457,7 @@ export const downtimeTrend = defineCapability({
     .strictObject({
       dateFrom: date,
       dateTo: date,
-      granularity: z.enum(["week", "month"]),
+      granularity: z.enum(["week", "month", "quarter"]),
       cause: cause.optional(),
       factoryId: factoryId.optional(),
       lineId: lineId.optional(),

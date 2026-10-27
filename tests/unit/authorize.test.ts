@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DATASET_VERSION } from "@/lib/paa/data/seed";
 import { executeCapability } from "@/lib/paa/capabilities/registry";
 
 const supervisor = { organizationId: "northstar", roleId: "line_supervisor" };
@@ -56,7 +57,7 @@ describe("policy enforcement", () => {
 
   it("attaches provenance to successful results", async () => {
     const out = await executeCapability(director, "northstar.defect_rates", q3);
-    expect(out.result?.provenance).toMatchObject({ service: "northstar.defect_rates", datasetVersion: "northstar-seed-1" });
+    expect(out.result?.provenance).toMatchObject({ service: "northstar.defect_rates", datasetVersion: DATASET_VERSION });
     expect(out.result?.provenance.resultId).toMatch(/^[0-9a-f]{12}$/);
   });
 });

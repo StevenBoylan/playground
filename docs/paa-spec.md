@@ -75,6 +75,7 @@ Avoid marketing-heavy animations. Prioritize fast response, legibility, accessib
 
 ### Data rules
 - Generate deterministic seeded synthetic datasets with a documented reference date, realistic distributions, and intentional anomalies that make the suggested prompts interesting.
+- Give every organization **four years of history** ending on the reference date, queryable weekly, monthly and quarterly, so there is depth to explore: underlying trends (growth, improving quality), seasonality, shutdown periods, and a few dated incidents (one or two historical, one current) that questions can discover. Incidents are documented in the seed code, and tests pin them down so they cannot silently disappear.
 - Make date windows explicit and use the dataset reference date for reproducible demo answers.
 - Document every metric formula and unit (MRR, churn, defect rate, etc.).
 - Compute values in services or SQL, never by asking the LLM to make up numbers.
@@ -248,6 +249,7 @@ Rules, matching the rest of the architecture:
 - **Documents cannot disagree with the screen.** One-click exports re-run the plan under the caller's role and re-validate the view, so a document only ever contains data that role may see.
 - **No external writes.** Email is a simulation, and the demo never contacts a mail service. Branding is configuration, not code, so the same generators serve every company.
 - A deliverable that needs no data (for example a deck from supplied placeholder text) plans zero service calls.
+- **Actions are not a toolbar.** PAA's point is that nothing is a fixed feature: the visitor states an intent. So the demo does not show permanent buttons for these actions. They live behind a **Help** button whose panel has two tabs: *Take it further* (actions on the current view, and things to simply ask) and *About* (who the company is, what data exists and over what period, what skills are available, and each role's permissions). The About content is generated from the real dataset, capability and role configuration, so it cannot drift from what actually works. In a company's own implementation such actions could become ordinary per-user features; the demo hides them to keep the ad-hoc nature visible.
 
 ## 10. Inspector: “Show how PAA built this”
 

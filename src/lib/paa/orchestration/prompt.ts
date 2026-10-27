@@ -5,7 +5,7 @@ import { getOrganization } from "../organizations";
 import type { ExperienceSpec } from "../schemas/experience";
 import { z } from "zod";
 import { ModelPlanSchema } from "./plan";
-import { lastMonth, lastQuarter, thisMonth } from "./windows";
+import { lastMonth, lastQuarter, lastYear, lastYears, thisMonth, yearToDate } from "./windows";
 
 export interface PreviousTurn {
   request: string;
@@ -65,9 +65,16 @@ The data runs from ${DATA_START} to ${REFERENCE_DATE}. The reference date, ${REF
 - "this month": ${month.from} to ${month.to}
 - "last month": ${prior.from} to ${prior.to}
 - "the month before last": ${previousMonth(prior.from).from} to ${previousMonth(prior.from).to}
+- "this year" or "year to date": ${yearToDate(REFERENCE_DATE).from} to ${yearToDate(REFERENCE_DATE).to}
+- "last year": ${lastYear(REFERENCE_DATE).from} to ${lastYear(REFERENCE_DATE).to}
+- "the last twelve months" or "the last year": ${lastYears(REFERENCE_DATE, 1).from} to ${REFERENCE_DATE}
+- "the last two years": ${lastYears(REFERENCE_DATE, 2).from} to ${REFERENCE_DATE}; "the last three years": ${lastYears(REFERENCE_DATE, 3).from} to ${REFERENCE_DATE}
+- "all time", "the whole period" or "four years": ${DATA_START} to ${REFERENCE_DATE}
 - "the last N days/weeks": count back from ${REFERENCE_DATE}
-- "since <month>" or "this year": from the start of that month, or ${DATA_START}, to ${REFERENCE_DATE}
+- "since <month>": from the start of that month to ${REFERENCE_DATE}
 - With no period given, use the most recent complete quarter and say so in "assumptions".
+
+There are four years of history, so pick the granularity to suit the span: weekly for up to about six months, monthly for up to about two years, quarterly beyond that (a weekly chart over several years is unreadable). To compare years, use quarterly or monthly data over the whole span and let the visitor see the pattern, or make one call per period. Data has a seasonal pattern (quieter summers and December, plants closed from Christmas Eve to New Year's Day), a steady improvement in quality and growth in volume over the years, plus a few one-off incidents; do not assert causes you were not given, only report what the services return.
 
 ## Company facts
 Factories: ${ds.factories.map((f) => `${f.id} (${f.name})`).join(", ")}.
@@ -90,7 +97,7 @@ Components:
 - BarChart { title, dataRef, xField, yField, format? } - rankings and comparisons between groups.
 - DonutChart { title, dataRef, nameField, valueField, format? } - shares of a whole; use only with a few non-negative slices.
 - DataTable { title, dataRef, columns: [{ field, label, format? }] } - exact figures; columns are fields of the list's rows.
-- FilterBar { filters: [{ param, label, callKey, options: [{ value, label }] }] } - lets the visitor re-run one call with a different input, without asking you again. param is "factoryId" (options: "" for all factories, then dublin, gdansk, monterrey) or "granularity" (options: week, month). The call named by callKey must accept that input, and its own input should match the first option. Use sparingly, when switching is a natural next step.
+- FilterBar { filters: [{ param, label, callKey, options: [{ value, label }] }] } - lets the visitor re-run one call with a different input, without asking you again. param is "factoryId" (options: "" for all factories, then dublin, gdansk, monterrey) or "granularity" (options: week, month, quarter). The call named by callKey must accept that input, and its own input should match the first option. Use sparingly, when switching is a natural next step.
 - Notice { level, text } - a caveat or assumption the visitor should know; no digits outside slots.
 - EmptyState { title, text } - only when a result would be empty.
 

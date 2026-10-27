@@ -1,12 +1,12 @@
 import { monthLabel } from "../dates";
-import { REFERENCE_DATE } from "../data/seed";
+import { DATA_START, REFERENCE_DATE } from "../data/seed";
 import { getOrganization } from "../organizations";
 import type { Envelope } from "../schemas/bindings";
 import type { ExperienceComponent, ExperienceSpec } from "../schemas/experience";
 import type { Session } from "../schemas/capability";
 import type { Decision, Trace } from "../schemas/trace";
 import { blockedComponents, executePlan, scopeNotice, validateForOrganization, type PlannedCall } from "./execute";
-import { lastMonth, lastQuarter, thisMonth } from "./windows";
+import { lastMonth, lastQuarter, lastYears, thisMonth } from "./windows";
 
 interface CuratedCall extends PlannedCall {
   rationale: string;
@@ -162,15 +162,15 @@ export const curatedPrompts: CuratedPrompt[] = [
   {
     id: "defect-trend",
     organizationId: "northstar",
-    text: "How has the defect rate changed since July?",
-    title: "Defect rate over time",
-    assumptions: ['"Since July" runs from the first of July to the dataset reference date.'],
-    subtitle: () => `${monthLabel("2026-07")} to ${monthLabel(REFERENCE_DATE.slice(0, 7))}`,
+    text: "How has the defect rate changed over the last two years?",
+    title: "Defect rate over two years",
+    assumptions: ['"The last two years" ends on the dataset reference date. Quarterly grouping keeps two years readable.'],
+    subtitle: () => `${monthLabel(lastYears(REFERENCE_DATE, 2).from.slice(0, 7))} to ${monthLabel(REFERENCE_DATE.slice(0, 7))}`,
     plan: () => [
       {
         key: "trend",
         capabilityId: "northstar.defect_trend",
-        input: { dateFrom: "2026-07-01", dateTo: REFERENCE_DATE, granularity: "month" },
+        input: { dateFrom: lastYears(REFERENCE_DATE, 2).from, dateTo: REFERENCE_DATE, granularity: "quarter" },
         rationale: "Defect rate per period over the window, with a first-versus-last comparison.",
       },
     ],
@@ -185,7 +185,12 @@ export const curatedPrompts: CuratedPrompt[] = [
         type: "FilterBar",
         id: "filters",
         filters: [
-          { param: "granularity", label: "Group by", callKey: "trend", options: [{ value: "month", label: "Month" }, { value: "week", label: "Week" }] },
+          {
+            param: "granularity",
+            label: "Group by",
+            callKey: "trend",
+            options: [{ value: "quarter", label: "Quarter" }, { value: "month", label: "Month" }, { value: "week", label: "Week" }],
+          },
           {
             param: "factoryId",
             label: "Factory",
@@ -211,6 +216,63 @@ export const curatedPrompts: CuratedPrompt[] = [
         higherIs: "bad",
       },
       { type: "LineChart", id: "defect-line", title: "Defect rate by period", dataRef: "results.trend.rows", xField: "label", yField: "defectRate", format: "percent" },
+    ],
+  },
+  {
+    id: "production-four-years",
+    organizationId: "northstar",
+    text: "Show production by quarter for the whole four years.",
+    title: "Production over four years",
+    assumptions: ["The whole period is the full four years of history, ending on the dataset reference date."],
+    subtitle: () => `${monthLabel(DATA_START.slice(0, 7))} to ${monthLabel(REFERENCE_DATE.slice(0, 7))}`,
+    plan: () => [
+      {
+        key: "output",
+        capabilityId: "northstar.production_summary",
+        input: { dateFrom: DATA_START, dateTo: REFERENCE_DATE, groupBy: "quarter" },
+        rationale: "Totals output and defect rate for each quarter across the whole history.",
+      },
+    ],
+    compose: () => [
+      {
+        type: "Narrative",
+        id: "summary",
+        template:
+          "Across the whole period the plants produced {{results.output.summary.totalUnits|integer}} units, with an overall defect rate of {{results.output.summary.defectRate|percent}}.",
+      },
+      {
+        type: "FilterBar",
+        id: "filters",
+        filters: [
+          {
+            param: "factoryId",
+            label: "Factory",
+            callKey: "output",
+            options: [
+              { value: "", label: "All factories" },
+              { value: "dublin", label: "Dublin Plant" },
+              { value: "gdansk", label: "Gdansk Plant" },
+              { value: "monterrey", label: "Monterrey Plant" },
+            ],
+          },
+        ],
+      },
+      { type: "KpiCard", id: "kpi-units", title: "Units produced", dataRef: "results.output.summary.totalUnits", format: "integer" },
+      { type: "KpiCard", id: "kpi-defect", title: "Defect rate", dataRef: "results.output.summary.defectRate", format: "percent" },
+      { type: "BarChart", id: "units-by-quarter", title: "Units produced by quarter", dataRef: "results.output.rows", xField: "label", yField: "unitsProduced", format: "integer" },
+      { type: "LineChart", id: "defect-by-quarter", title: "Defect rate by quarter", dataRef: "results.output.rows", xField: "label", yField: "defectRate", format: "percent" },
+      {
+        type: "DataTable",
+        id: "quarter-table",
+        title: "Quarter detail",
+        dataRef: "results.output.rows",
+        columns: [
+          { field: "label", label: "Quarter" },
+          { field: "unitsProduced", label: "Units produced", format: "integer" },
+          { field: "unitsDefective", label: "Defective units", format: "integer" },
+          { field: "defectRate", label: "Defect rate", format: "percent" },
+        ],
+      },
     ],
   },
 ];

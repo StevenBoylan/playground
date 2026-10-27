@@ -1,9 +1,11 @@
-import { dayOfWeek, eachDay } from "../dates";
+import { dayOfWeek, eachDay, parseDate } from "../dates";
 
 /** All demo answers are computed relative to this date, so they are reproducible. */
 export const REFERENCE_DATE = "2026-09-30";
-export const DATA_START = "2026-04-01";
-export const DATASET_VERSION = "northstar-seed-1";
+/** Four years of history, ending on the reference date. */
+export const DATA_START = "2022-10-01";
+export const DATA_YEARS = 4;
+export const DATASET_VERSION = "northstar-seed-2";
 
 export interface Factory {
   id: string;
@@ -83,7 +85,9 @@ interface LineSpec {
   name: string;
   factoryId: string;
   productId: string;
+  /** Typical daily output today (the end of the data window). */
   dailyUnits: number;
+  /** Typical defect rate today. */
   baseDefectRate: number;
 }
 
@@ -99,9 +103,63 @@ const LINE_SPECS: LineSpec[] = [
   { id: "monterrey-3", name: "Monterrey Line 3", factoryId: "monterrey", productId: "drive-unit", dailyUnits: 1800, baseDefectRate: 0.016 },
 ];
 
-/** Intentional anomalies that make the suggested prompts interesting. */
-const GDANSK_2_QUALITY_DRIFT_FROM = "2026-08-15";
-const MONTERREY_CONVEYOR_ISSUE_FROM = "2026-09-01";
+/**
+ * The shape of the history. Underlying trends: volume grows about 4% a year, defect rates improve about 12%
+ * of today's level per year (a quality programme), summer and December are quieter, and every plant shuts for
+ * Christmas. On top of that sit incidents that give the suggested questions something to find.
+ */
+const VOLUME_GROWTH_PER_YEAR = 0.04;
+const DEFECT_IMPROVEMENT_PER_YEAR = 0.12;
+// January to December.
+const SEASONAL_VOLUME = [0.97, 1.0, 1.02, 1.0, 1.02, 1.0, 0.95, 0.88, 1.03, 1.04, 1.03, 0.86];
+
+interface Incident {
+  lineId?: string;
+  factoryId?: string;
+  from: string;
+  to: string;
+}
+
+/** Quality incidents: a multiplier on the defect rate while they last. */
+const QUALITY_INCIDENTS: (Incident & { multiplier: number })[] = [
+  // Supplier batch problem on one Dublin line.
+  { lineId: "dublin-2", from: "2023-06-05", to: "2023-07-02", multiplier: 2.0 },
+  // Tooling wear on Monterrey Line 3, fixed after a retool.
+  { lineId: "monterrey-3", from: "2024-02-01", to: "2024-05-15", multiplier: 2.4 },
+  // The current story: Gdansk Line 2 drifts out of tolerance and has not recovered.
+  { lineId: "gdansk-2", from: "2026-08-15", to: "9999-12-31", multiplier: 2.8 },
+];
+
+/** Downtime incidents: a higher event rate and a dominant cause while they last. */
+const DOWNTIME_INCIDENTS: (Incident & { rate: number; cause: (typeof DOWNTIME_CAUSES)[number]; secondEvent?: number })[] = [
+  // An ageing press at Gdansk fails repeatedly over winter.
+  { factoryId: "gdansk", from: "2024-01-08", to: "2024-02-25", rate: 0.45, cause: "Equipment failure" },
+  // Supply-chain disruption hits Dublin.
+  { factoryId: "dublin", from: "2025-03-03", to: "2025-04-18", rate: 0.4, cause: "Material shortage" },
+  // The current story: Monterrey's conveyors start failing at the start of September 2026.
+  { factoryId: "monterrey", from: "2026-09-01", to: "9999-12-31", rate: 0.55, cause: "Conveyor failure", secondEvent: 0.4 },
+];
+
+const BASE_DOWNTIME_RATE = 0.2;
+const BASE_DOWNTIME_WEIGHTS = [28, 24, 16, 18, 4, 10];
+
+function applies(incident: Incident, line: LineSpec, date: string): boolean {
+  return (
+    date >= incident.from &&
+    date <= incident.to &&
+    (incident.lineId === undefined || incident.lineId === line.id) &&
+    (incident.factoryId === undefined || incident.factoryId === line.factoryId)
+  );
+}
+
+/** Weights that make one cause dominate (about 60% of events) while keeping the others in proportion. */
+function dominant(cause: (typeof DOWNTIME_CAUSES)[number]): number[] {
+  const others = BASE_DOWNTIME_WEIGHTS.map((w, i) => (DOWNTIME_CAUSES[i] === cause ? 0 : w));
+  const sum = others.reduce((a, b) => a + b, 0);
+  return others.map((w, i) => (DOWNTIME_CAUSES[i] === cause ? 0.6 * (sum / 0.4) : w));
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 function pick<T>(items: readonly T[], weights: readonly number[], roll: number): T {
   const total = weights.reduce((a, b) => a + b, 0);
@@ -113,29 +171,40 @@ function pick<T>(items: readonly T[], weights: readonly number[], roll: number):
   return items[items.length - 1];
 }
 
+/** Plants are closed from Christmas Eve to New Year's Day, and on Sundays. */
+function isShutdown(date: string): boolean {
+  const month = date.slice(5, 7);
+  const day = Number(date.slice(8, 10));
+  return (month === "12" && day >= 24) || (month === "01" && day === 1) || dayOfWeek(date) === 0;
+}
+
 function generate(): NorthstarDataset {
   const rng = mulberry32(20260930);
   const daily: DailyOutput[] = [];
   const downtime: DowntimeEvent[] = [];
   let eventSeq = 0;
+  const reference = parseDate(REFERENCE_DATE).getTime();
 
   for (const date of eachDay(DATA_START, REFERENCE_DATE)) {
+    if (isShutdown(date)) continue;
     const dow = dayOfWeek(date);
-    if (dow === 0) continue;
     const dayFactor = dow === 6 ? 0.7 : 1;
+    const yearsAgo = (reference - parseDate(date).getTime()) / (365.25 * DAY_MS);
+    const volumeFactor = (1 - VOLUME_GROWTH_PER_YEAR * yearsAgo) * SEASONAL_VOLUME[Number(date.slice(5, 7)) - 1];
+    const defectFactor = 1 + DEFECT_IMPROVEMENT_PER_YEAR * yearsAgo;
 
     for (const line of LINE_SPECS) {
       const volumeNoise = 1 + (rng() - 0.5) * 0.12;
-      const unitsProduced = Math.round(line.dailyUnits * dayFactor * volumeNoise);
+      const unitsProduced = Math.round(line.dailyUnits * dayFactor * volumeFactor * volumeNoise);
 
-      let rate = line.baseDefectRate * (1 + (rng() - 0.5) * 0.3);
-      if (line.id === "gdansk-2" && date >= GDANSK_2_QUALITY_DRIFT_FROM) rate *= 2.8;
+      let rate = line.baseDefectRate * defectFactor * (1 + (rng() - 0.5) * 0.3);
+      for (const incident of QUALITY_INCIDENTS) if (applies(incident, line, date)) rate *= incident.multiplier;
       daily.push({ date, lineId: line.id, unitsProduced, unitsDefective: Math.round(unitsProduced * rate) });
 
-      const conveyorIssue = line.factoryId === "monterrey" && date >= MONTERREY_CONVEYOR_ISSUE_FROM;
-      const eventCount = (rng() < (conveyorIssue ? 0.55 : 0.2) ? 1 : 0) + (conveyorIssue && rng() < 0.4 ? 1 : 0);
+      const incident = DOWNTIME_INCIDENTS.find((i) => applies(i, line, date));
+      const eventCount = (rng() < (incident?.rate ?? BASE_DOWNTIME_RATE) ? 1 : 0) + (incident?.secondEvent && rng() < incident.secondEvent ? 1 : 0);
+      const weights = incident ? dominant(incident.cause) : BASE_DOWNTIME_WEIGHTS;
       for (let i = 0; i < eventCount; i++) {
-        const weights = conveyorIssue ? [10, 8, 6, 6, 60, 10] : [28, 24, 16, 18, 4, 10];
         downtime.push({
           id: `dt-${++eventSeq}`,
           date,

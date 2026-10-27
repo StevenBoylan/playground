@@ -62,3 +62,21 @@ export function weekLabel(start: string): string {
   const d = parseDate(start);
   return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
 }
+
+export function quarterKey(date: string): string {
+  const quarter = Math.floor((Number(date.slice(5, 7)) - 1) / 3) + 1;
+  return `${date.slice(0, 4)}-Q${quarter}`;
+}
+
+export function quarterLabel(key: string): string {
+  const [year, quarter] = key.split("-");
+  return `${quarter} ${year}`;
+}
+
+/** The date `years` years before `date`, plus one day, so that a window of N years ending on `date` has no overlap. */
+export function yearsBack(date: string, years: number): string {
+  const d = parseDate(date);
+  d.setUTCFullYear(d.getUTCFullYear() - years);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return formatDate(d);
+}

@@ -22,7 +22,7 @@ describe("synthetic dataset", () => {
     expect(a.daily[0].date).toBe(DATA_START);
     expect(a.daily.at(-1)?.date).toBe(REFERENCE_DATE);
     // Same seed gives the same first record on every run.
-    expect(a.daily[0]).toEqual({ date: "2026-04-01", lineId: "dublin-1", unitsProduced: a.daily[0].unitsProduced, unitsDefective: a.daily[0].unitsDefective });
+    expect(a.daily[0]).toEqual({ date: DATA_START, lineId: "dublin-1", unitsProduced: a.daily[0].unitsProduced, unitsDefective: a.daily[0].unitsDefective });
     expect(getNorthstarDataset()).toBe(a);
   });
 

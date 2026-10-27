@@ -1,4 +1,4 @@
-import { endOfMonth, parseDate, previousMonth, startOfMonth, type DateRange } from "../dates";
+import { endOfMonth, parseDate, previousMonth, startOfMonth, yearsBack, type DateRange } from "../dates";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -24,4 +24,19 @@ export function thisMonth(reference: string): DateRange {
 
 export function lastMonth(reference: string): DateRange {
   return previousMonth(reference);
+}
+
+/** The most recent full calendar year before the reference date's year. */
+export function lastYear(reference: string): DateRange {
+  const year = Number(reference.slice(0, 4)) - 1;
+  return { from: `${year}-01-01`, to: `${year}-12-31` };
+}
+
+export function yearToDate(reference: string): DateRange {
+  return { from: `${reference.slice(0, 4)}-01-01`, to: reference };
+}
+
+/** A window of whole years ending on the reference date. */
+export function lastYears(reference: string, years: number): DateRange {
+  return { from: yearsBack(reference, years), to: reference };
 }

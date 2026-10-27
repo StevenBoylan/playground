@@ -3,7 +3,7 @@ import { FORMATS } from "../format";
 import { SLOT_PATTERN, isFormat, isValidRefSyntax, resolveRef, type Envelope } from "./bindings";
 
 export const MAX_COMPONENTS = 12;
-export const MAX_ROWS = 200;
+export const MAX_ROWS = 400;
 
 const id = z.string().regex(/^[a-z0-9-]{1,64}$/);
 const ref = z.string().max(200);

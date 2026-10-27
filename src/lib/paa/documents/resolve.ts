@@ -9,6 +9,18 @@ export const MAX_BLOCKS = 14;
 const MAX_CHART_POINTS = 40;
 const MAX_TABLE_ROWS = 30;
 
+/**
+ * Long series are trimmed for documents, and the trimming is stated in the title instead of happening silently.
+ * Time series keep their latest points; rankings and tables keep their first rows.
+ */
+function limitSeries<T>(rows: T[], max: number, keep: "first" | "last"): { rows: T[]; note: string } {
+  if (rows.length <= max) return { rows, note: "" };
+  return {
+    rows: keep === "last" ? rows.slice(-max) : rows.slice(0, max),
+    note: ` (${keep === "last" ? "latest" : "first"} ${max} of ${rows.length})`,
+  };
+}
+
 const label = z.string().min(1).max(200);
 const text = z.string().min(1).max(800);
 const field = z.string().regex(/^[A-Za-z][A-Za-z0-9_]{0,63}$/);
@@ -120,11 +132,12 @@ export function resolveDeliverable(raw: unknown, envelope: Envelope, options: Re
           errors.push(`${id}: fields "${b.xField}" / "${b.yField}" are not usable (y must be numeric)`);
           break;
         }
-        const slice = rows.slice(0, MAX_CHART_POINTS);
+        const limited = limitSeries(rows, MAX_CHART_POINTS, b.chart === "line" ? "last" : "first");
+        const slice = limited.rows;
         blocks.push({
           type: "chart",
           chart: b.chart,
-          title: b.title,
+          title: b.title + limited.note,
           labels: slice.map((r) => String(r[b.xField])),
           values: slice.map((r) => Number(r[b.yField])),
           format: (b.format ?? "number") as Format,
@@ -140,11 +153,12 @@ export function resolveDeliverable(raw: unknown, envelope: Envelope, options: Re
           errors.push(`${id}: fields not found: ${missing.map((m) => m.field).join(", ")}`);
           break;
         }
+        const shown = limitSeries(rows, MAX_TABLE_ROWS, "first");
         blocks.push({
           type: "table",
-          title: b.title,
+          title: b.title + shown.note,
           columns: b.columns.map((c) => ({ label: c.label, numeric: c.format !== undefined && c.format !== "text" })),
-          rows: rows.slice(0, MAX_TABLE_ROWS).map((r) => b.columns.map((c) => formatValue(r[c.field], c.format))),
+          rows: shown.rows.map((r) => b.columns.map((c) => formatValue(r[c.field], c.format))),
         });
         break;
       }
@@ -191,7 +205,7 @@ export function documentFromExperience(
 
   const rowsOf = (ref: string): Record<string, unknown>[] => {
     const v = resolveRef(envelope, ref);
-    return Array.isArray(v) ? (v as Record<string, unknown>[]).slice(0, MAX_CHART_POINTS) : [];
+    return Array.isArray(v) ? (v as Record<string, unknown>[]) : [];
   };
 
   for (const c of experience.components) {
@@ -214,11 +228,12 @@ export function documentFromExperience(
         break;
       case "LineChart":
       case "BarChart": {
-        const rows = rowsOf(c.dataRef);
+        const limited = limitSeries(rowsOf(c.dataRef), MAX_CHART_POINTS, c.type === "LineChart" ? "last" : "first");
+        const rows = limited.rows;
         blocks.push({
           type: "chart",
           chart: c.type === "LineChart" ? "line" : "bar",
-          title: c.title,
+          title: c.title + limited.note,
           labels: rows.map((r) => String(r[c.xField])),
           values: rows.map((r) => Number(r[c.yField])),
           format: c.format ?? "number",
@@ -226,27 +241,28 @@ export function documentFromExperience(
         break;
       }
       case "DonutChart": {
-        const rows = rowsOf(c.dataRef);
+        const limited = limitSeries(rowsOf(c.dataRef), MAX_CHART_POINTS, "first");
+        const rows = limited.rows;
         blocks.push({
           type: "chart",
           chart: "donut",
-          title: c.title,
+          title: c.title + limited.note,
           labels: rows.map((r) => String(r[c.nameField])),
           values: rows.map((r) => Math.max(0, Number(r[c.valueField]))),
           format: c.format ?? "number",
         });
         break;
       }
-      case "DataTable":
+      case "DataTable": {
+        const shown = limitSeries(rowsOf(c.dataRef), MAX_TABLE_ROWS, "first");
         blocks.push({
           type: "table",
-          title: c.title,
+          title: c.title + shown.note,
           columns: c.columns.map((col) => ({ label: col.label, numeric: col.format !== undefined && col.format !== "text" })),
-          rows: rowsOf(c.dataRef)
-            .slice(0, MAX_TABLE_ROWS)
-            .map((r) => c.columns.map((col) => formatValue(r[col.field], col.format))),
+          rows: shown.rows.map((r) => c.columns.map((col) => formatValue(r[col.field], col.format))),
         });
         break;
+      }
       case "Notice":
         blocks.push({ type: "paragraph", text: `Note: ${c.text}` });
         break;

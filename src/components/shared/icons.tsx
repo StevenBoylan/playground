@@ -152,3 +152,9 @@ export const LockIcon = (p: P) => (
     <path d="M8 11V8a4 4 0 118 0v3" />
   </Icon>
 );
+export const QuestionIcon = (p: P) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M9.5 9.5a2.5 2.5 0 114 2c-.9.6-1.5 1-1.5 2M12 17h.01" />
+  </Icon>
+);
