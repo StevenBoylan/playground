@@ -28,7 +28,7 @@ interface Props<T extends ExperienceComponent["type"]> {
 }
 
 const PALETTE = ["#6366f1", "#06b6d4", "#f59e0b", "#ec4899", "#10b981", "#8b5cf6", "#f97316"];
-const NUMERIC: Format[] = ["integer", "number", "percent", "minutes"];
+const NUMERIC: Format[] = ["integer", "number", "percent", "minutes", "currency"];
 
 const AXIS = { tick: { fill: "var(--muted)", fontSize: 12 }, axisLine: false, tickLine: false } as const;
 const TOOLTIP = {
@@ -143,7 +143,7 @@ export function LineChartView({ component, envelope }: Props<"LineChart">) {
           </defs>
           <CartesianGrid vertical={false} stroke="var(--line)" />
           <XAxis {...xAxisFor(data.length, component.xField)} />
-          <YAxis {...AXIS} tickFormatter={(v) => formatValue(v, fmt)} width={fmt === "minutes" ? 84 : 64} />
+          <YAxis {...AXIS} tickFormatter={(v) => formatValue(v, fmt)} width={fmt === "minutes" || fmt === "currency" ? 84 : 64} />
           <Tooltip {...TOOLTIP} formatter={(v) => formatValue(v, fmt)} />
           <Area
             isAnimationActive={false}
@@ -180,7 +180,7 @@ export function BarChartView({ component, envelope }: Props<"BarChart">) {
         <RBarChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
           <CartesianGrid vertical={false} stroke="var(--line)" />
           <XAxis {...xAxisFor(data.length, component.xField)} />
-          <YAxis {...AXIS} tickFormatter={(v) => formatValue(v, fmt)} width={fmt === "minutes" ? 84 : 64} />
+          <YAxis {...AXIS} tickFormatter={(v) => formatValue(v, fmt)} width={fmt === "minutes" || fmt === "currency" ? 84 : 64} />
           <Tooltip {...TOOLTIP} cursor={HOVER_CURSOR} formatter={(v) => formatValue(v, fmt)} />
           <Bar isAnimationActive={false} dataKey={component.yField} radius={[8, 8, 0, 0]} maxBarSize={56}>
             {values.map((v, i) => (

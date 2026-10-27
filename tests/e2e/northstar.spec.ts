@@ -2,25 +2,74 @@ import { expect, test, type Page } from "@playwright/test";
 
 // These tests exercise the curated path and are deterministic: the live-model route is answered as
 // "unavailable" at the network level, so they never spend API credits even when a key is configured.
+// Typing one of the example requests exactly still works without a model.
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/paa/intent", (route) => route.fulfill({ status: 503, json: { error: "ai_unavailable" } }));
+});
+
+/** The interface has one control: say what you want. */
+async function ask(page: Page, text: string) {
+  await page.getByLabel("What would you like to see?").fill(text);
+  await page.getByRole("button", { name: "Build" }).click();
+}
+
+/** Switching profile happens in the avatar menu. */
+async function profile(page: Page, label: string) {
+  await page.getByRole("button", { name: /Viewing as/ }).click();
+  await page.getByRole("menuitemradio", { name: new RegExp(label) }).click();
+}
+
 /** Actions live behind the Help button, not in a permanent toolbar: the demo is about asking. */
 async function helpAction(page: Page, name: RegExp) {
   await page.getByRole("button", { name: "Help" }).click();
   await page.getByRole("button", { name }).click();
 }
 
-test.beforeEach(async ({ page }) => {
-  await page.route("**/api/paa/intent", (route) => route.fulfill({ status: 503, json: { error: "ai_unavailable" } }));
+async function open(page: Page, company: RegExp) {
+  await page.goto("/paa");
+  await page.getByRole("button", { name: company }).click();
+}
+
+const DOWNTIME = "Compare downtime this month with last month and show the biggest contributors.";
+const DEFECT_TREND = "How has the defect rate changed over the last two years?";
+
+test.describe("the interface is one control, not a chatbot with buttons", () => {
+  test("an empty canvas has the intent field and nothing to click but Build, Help and the profile", async ({ page }) => {
+    await open(page, /Northstar/);
+    await expect(page.getByLabel("What would you like to see?")).toBeVisible();
+    // No suggestion cards, no follow-up chips, no sidebar.
+    await expect(page.getByRole("button", { name: /Compare downtime this month/ })).toHaveCount(0);
+    await expect(page.getByText("Take it further")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Viewing as/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Help" })).toBeVisible();
+  });
+
+  test("Tab accepts the ghost example, and Enter builds it", async ({ page }) => {
+    await open(page, /Northstar/);
+    const field = page.getByLabel("What would you like to see?");
+    await expect(field).toHaveAttribute("placeholder", /^Try: /);
+    await field.focus();
+    await page.keyboard.press("Tab");
+    await expect(field).not.toHaveValue("");
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("heading", { level: 2 }).filter({ hasNotText: "Northstar" }).first()).toBeVisible();
+  });
+
+  test("free text explains when live AI is off", async ({ page }) => {
+    await open(page, /Northstar/);
+    await ask(page, "Show me something new");
+    await expect(page.getByText(/Live AI isn.t configured/).first()).toBeVisible();
+  });
 });
 
-test("Northstar downtime journey renders from service data and respects role scope", async ({ page }) => {
+test("Northstar downtime journey renders from service data and respects profile scope", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(String(e)));
 
-  await page.goto("/paa");
-  await page.getByRole("button", { name: /Northstar/ }).click();
-  await page.getByRole("button", { name: /Compare downtime this month/ }).click();
+  await open(page, /Northstar/);
+  await ask(page, DOWNTIME);
 
-  // Director sees the planted conveyor-failure anomaly, computed by the service.
+  // The director sees the planted conveyor-failure anomaly, computed by the service.
   await expect(page.getByText(/The largest increase came from Conveyor failure/)).toBeVisible();
   await expect(page.getByRole("table")).toContainText("Conveyor failure");
 
@@ -29,18 +78,17 @@ test("Northstar downtime journey renders from service data and respects role sco
   await expect(page.getByText("Recorded events from the backend.")).toBeVisible();
   await expect(page.getByText("northstar.downtime_breakdown").first()).toBeVisible();
 
-  // Switching role re-runs the same plan under narrower policy, without the model.
-  await page.getByRole("radio", { name: "Line Supervisor" }).click();
+  // Switching profile re-runs the same plan under narrower policy, without the model.
+  await profile(page, "Line Supervisor");
   await expect(page.getByText("Results are limited to the data this role is permitted to see.")).toBeVisible();
   await expect(page.getByText(/largest increase came from Conveyor failure/)).toHaveCount(0);
 
   expect(errors).toEqual([]);
 });
 
-test("filters re-run the service directly and policy blocks what a role may not see", async ({ page }) => {
-  await page.goto("/paa");
-  await page.getByRole("button", { name: /Northstar/ }).click();
-  await page.getByRole("button", { name: /How has the defect rate changed/ }).click();
+test("filters re-run the service directly and policy blocks what a profile may not see", async ({ page }) => {
+  await open(page, /Northstar/);
+  await ask(page, DEFECT_TREND);
 
   const narrative = page.getByText(/The defect rate moved from/);
   await expect(narrative).toBeVisible();
@@ -50,27 +98,15 @@ test("filters re-run the service directly and policy blocks what a role may not 
   await expect(narrative).not.toHaveText(before ?? "");
   await expect(page.getByText("Results are limited")).toHaveCount(0);
 
-  // The same Gdansk filter under a role scoped to Dublin is denied, not silently shown.
-  await page.getByRole("radio", { name: "Line Supervisor" }).click();
+  // The same Gdansk filter under a profile scoped to Dublin is denied, not silently shown.
+  await profile(page, "Line Supervisor");
   await expect(page.getByText("This request could not be completed for the selected role.")).toBeVisible();
   await expect(page.getByText(/The defect rate moved from/)).toHaveCount(0);
 });
 
-test("follow-up suggestions appear once a view exists, and free text explains when AI is off", async ({ page }) => {
-  await page.goto("/paa");
-  await page.getByRole("button", { name: /Northstar/ }).click();
-  await page.getByRole("button", { name: /highest defect rates/ }).click();
-  await expect(page.getByRole("button", { name: "Show that as a table" })).toBeVisible();
-
-  await page.getByLabel("What would you like to see?").fill("Show me something new");
-  await page.getByRole("button", { name: "Build" }).click();
-  await expect(page.getByText(/Live AI isn.t configured/).first()).toBeVisible();
-});
-
 test("a view can be taken further: PDF with download, slide deck preview and a simulated email", async ({ page }) => {
-  await page.goto("/paa");
-  await page.getByRole("button", { name: /Northstar/ }).click();
-  await page.getByRole("button", { name: /Compare downtime this month/ }).click();
+  await open(page, /Northstar/);
+  await ask(page, DOWNTIME);
   await expect(page.getByText(/The largest increase came from Conveyor failure/)).toBeVisible();
 
   // PDF: a real file the visitor can download.
@@ -100,11 +136,10 @@ test("a view can be taken further: PDF with download, slide deck preview and a s
   await expect(page.getByText("northstar.action.draft_email").first()).toBeVisible();
 });
 
-test("actions are governed by role: a supervisor can export a PDF but not a deck or email", async ({ page }) => {
-  await page.goto("/paa");
-  await page.getByRole("button", { name: /Northstar/ }).click();
-  await page.getByRole("button", { name: /highest defect rates/ }).click();
-  await page.getByRole("radio", { name: "Line Supervisor" }).click();
+test("actions are governed by profile: a supervisor can export a PDF but not a deck or email", async ({ page }) => {
+  await open(page, /Northstar/);
+  await ask(page, "Which production lines have the highest defect rates?");
+  await profile(page, "Line Supervisor");
   await expect(page.getByText("Results are limited to the data this role is permitted to see.")).toBeVisible();
 
   await helpAction(page, /Create a slide deck/);
@@ -117,12 +152,7 @@ test("actions are governed by role: a supervisor can export a PDF but not a deck
 });
 
 test("the help panel keeps actions out of sight until wanted, and explains the company in About", async ({ page }) => {
-  await page.goto("/paa");
-  await page.getByRole("button", { name: /Northstar/ }).click();
-
-  // No permanent "take it further" bar: the screen is just the question box and the answer.
-  await expect(page.getByText("Take it further")).toHaveCount(0);
-
+  await open(page, /Northstar/);
   await page.getByRole("button", { name: "Help" }).click();
   const panel = page.getByRole("dialog", { name: "Help" });
   await expect(panel.getByRole("tab", { name: "Take it further" })).toHaveAttribute("aria-selected", "true");
@@ -133,11 +163,7 @@ test("the help panel keeps actions out of sight until wanted, and explains the c
   await expect(panel.getByText("Dublin (Ireland), Gdansk (Poland), Monterrey (Mexico)")).toBeVisible();
   await expect(panel.getByText(/1 Oct 2022 to 30 Sep 2026 \(4 years\)/)).toBeVisible();
   await expect(panel.getByText("Weekly", { exact: true })).toBeVisible();
-  await expect(panel.getByText("Monthly", { exact: true })).toBeVisible();
   await expect(panel.getByText("Quarterly", { exact: true })).toBeVisible();
-  await expect(panel.getByText(/Create a slide deck\./)).toBeVisible();
-
-  // Roles, with what each may and may not do, and the current role marked.
   await expect(panel.getByText("You are here")).toBeVisible();
   await expect(panel.getByText("Data scope: Dublin Plant only")).toBeVisible();
   await expect(panel.getByText("Data scope: All 3 plants")).toBeVisible();
@@ -146,20 +172,98 @@ test("the help panel keeps actions out of sight until wanted, and explains the c
   await expect(panel).toHaveCount(0);
 });
 
-test("four years of data are on offer, and the suggestions use them", async ({ page }) => {
-  await page.goto("/paa");
-  await page.getByRole("button", { name: /Northstar/ }).click();
-  await page.getByRole("button", { name: /Show production by quarter for the whole four years/ }).click();
+test("four years of data are on offer", async ({ page }) => {
+  await open(page, /Northstar/);
+  await ask(page, "Show production by quarter for the whole four years.");
   await expect(page.getByText(/Across the whole period the plants produced/)).toBeVisible();
-  // Sixteen quarters, from Q4 2022 to Q3 2026.
   const table = page.getByRole("table");
-  await expect(table.getByRole("row")).toHaveCount(17);
+  await expect(table.getByRole("row")).toHaveCount(17); // header plus sixteen quarters
   await expect(table).toContainText("Q4 2022");
   await expect(table).toContainText("Q3 2026");
 });
 
-test("other companies are not yet selectable", async ({ page }) => {
+test.describe("Orbit: three profiles, three levels of access", () => {
+  const MRR = "Show MRR growth over the last six months.";
+  const CHURN = "Compare churn across subscription plans.";
+  const BUGS = "Where are the bugs? Show bug tickets by feature for the last three months.";
+  const RISK = "Which customer accounts are most at risk of leaving?";
+
+  test("the CEO sees revenue; the same question is refused to the Head of Operations and the Junior Developer", async ({ page }) => {
+    await open(page, /Orbit Software/);
+    await ask(page, MRR);
+    await expect(page.getByText(/MRR reached €/)).toBeVisible();
+    await expect(page.getByText("Current MRR")).toBeVisible();
+
+    await profile(page, "Head of Operations");
+    await expect(page.getByText("This request could not be completed for the selected role.")).toBeVisible();
+    await expect(page.getByText(/MRR reached/)).toHaveCount(0);
+
+    await profile(page, "Junior Software Developer");
+    await expect(page.getByText("This request could not be completed for the selected role.")).toBeVisible();
+
+    // And back to the CEO, whose view comes back in full.
+    await profile(page, "CEO");
+    await expect(page.getByText(/MRR reached €/)).toBeVisible();
+  });
+
+  test("Head of Operations sees churn and named accounts, with revenue withheld rather than blocked", async ({ page }) => {
+    await open(page, /Orbit Software/);
+    await profile(page, "Head of Operations");
+    await ask(page, CHURN);
+    await expect(page.getByText(/has the highest monthly churn/)).toBeVisible();
+    await expect(page.getByText("Results are limited to the data this role is permitted to see.")).toBeVisible();
+    // The revenue column is a dash, never a number or a zero.
+    const rows = page.getByRole("table").getByRole("row");
+    await expect(rows.nth(1)).toContainText("–");
+    await expect(rows.nth(1)).not.toContainText("€");
+
+    await ask(page, RISK);
+    await expect(page.getByText(/is the account most at risk/)).toBeVisible();
+    await expect(page.getByRole("table")).toContainText("–");
+
+    // The withholding is a recorded policy event, distinct from a denial.
+    await page.getByRole("button", { name: /how PAA built this/ }).click();
+    await expect(page.getByText(/Revenue figures \(account MRR\) are hidden for this role/)).toBeVisible();
+  });
+
+  test("the Junior Developer gets usage and support, but customer accounts and churn are refused", async ({ page }) => {
+    await open(page, /Orbit Software/);
+    await profile(page, "Junior Software Developer");
+    await ask(page, BUGS);
+    await expect(page.getByText(/Integrations accounts for the most bug tickets/)).toBeVisible();
+    await expect(page.getByText("Results are limited")).toHaveCount(0);
+
+    await ask(page, RISK);
+    await expect(page.getByText("This request could not be completed for the selected role.")).toBeVisible();
+    await ask(page, CHURN);
+    await expect(page.getByText("This request could not be completed for the selected role.")).toBeVisible();
+  });
+
+  test("About describes the company and exactly what each profile may do", async ({ page }) => {
+    await open(page, /Orbit Software/);
+    await page.getByRole("button", { name: "Help" }).click();
+    const panel = page.getByRole("dialog", { name: "Help" });
+    await panel.getByRole("tab", { name: "About" }).click();
+    await expect(panel.getByText(/fictional B2B software company/)).toBeVisible();
+    await expect(panel.getByText("Monthly", { exact: true })).toBeVisible();
+    await expect(panel.getByText("Revenue figures appear as a dash wherever they would otherwise be shown: hidden, not blocked.")).toBeVisible();
+    await expect(panel.getByText("Product usage and support only")).toBeVisible();
+    await expect(panel.getByText("You are here")).toBeVisible();
+  });
+
+  test("the company is isolated: switching companies clears everything", async ({ page }) => {
+    await open(page, /Orbit Software/);
+    await ask(page, MRR);
+    await expect(page.getByText(/MRR reached €/)).toBeVisible();
+    await page.getByRole("button", { name: /Back to all companies/ }).click();
+    await page.getByRole("button", { name: /Northstar/ }).click();
+    await expect(page.getByText(/MRR reached/)).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Viewing as/ })).toContainText("Operations Director");
+  });
+});
+
+test("companies that are not built yet are not selectable", async ({ page }) => {
   await page.goto("/paa");
-  await expect(page.getByRole("button", { name: /Orbit Software/ })).toBeDisabled();
   await expect(page.getByRole("button", { name: /Grove People/ })).toBeDisabled();
+  await expect(page.getByRole("button", { name: /Orbit Software/ })).toBeEnabled();
 });

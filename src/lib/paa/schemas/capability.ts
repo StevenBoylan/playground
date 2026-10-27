@@ -19,6 +19,8 @@ export interface ServiceOutput<O> {
   metricDefinitions: MetricDefinition[];
   timeRange: { from: string; to: string };
   warnings?: string[];
+  /** Fields or rows withheld because of the caller's role. Recorded as policy events and shown as a scope notice. */
+  disclosures?: string[];
 }
 
 export interface ServiceResult<O> extends ServiceOutput<O> {

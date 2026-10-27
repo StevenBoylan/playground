@@ -9,7 +9,7 @@ const supervisor = { organizationId: "northstar", roleId: "line_supervisor" };
 type Row = Record<string, number | string>;
 
 describe("curated Northstar journeys", () => {
-  for (const prompt of curatedPrompts) {
+  for (const prompt of curatedPrompts.filter((p) => p.organizationId === "northstar")) {
     it(`"${prompt.text}" renders a valid experience from recorded service calls`, async () => {
       const run = await runCurated(director, prompt.id);
       expect(run.trace.executions.length).toBeGreaterThan(0);

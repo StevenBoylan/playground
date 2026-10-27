@@ -40,3 +40,10 @@ export function yearToDate(reference: string): DateRange {
 export function lastYears(reference: string, years: number): DateRange {
   return { from: yearsBack(reference, years), to: reference };
 }
+
+/** The last N calendar months, ending with the month of the reference date (so six months starts five months back). */
+export function lastMonths(reference: string, months: number): DateRange {
+  const d = parseDate(startOfMonth(reference));
+  d.setUTCMonth(d.getUTCMonth() - (months - 1));
+  return { from: d.toISOString().slice(0, 10), to: reference };
+}

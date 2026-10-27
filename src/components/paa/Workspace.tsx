@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
+import type { AboutInfo } from "@/lib/paa/about";
+import type { Deliverable, DocKind } from "@/lib/paa/documents/types";
 import type { IntentEvent, IntentResult } from "@/lib/paa/orchestration/orchestrator";
 import type { PlannedCall } from "@/lib/paa/orchestration/execute";
 import type { Envelope } from "@/lib/paa/schemas/bindings";
@@ -13,17 +15,16 @@ import {
   FactoryIcon,
   LayersIcon,
   LeafIcon,
-  OrbitIcon,
-  SendIcon,
   LockIcon,
+  OrbitIcon,
   SparklesIcon,
 } from "@/components/shared/icons";
-import type { AboutInfo } from "@/lib/paa/about";
-import type { Deliverable, DocKind } from "@/lib/paa/documents/types";
 import { ArchitectureInspector } from "./ArchitectureInspector";
 import { DeliverablePanel } from "./DeliverablePanel";
-import { HelpPanel } from "./HelpPanel";
 import { DynamicRenderer } from "./DynamicRenderer";
+import { HelpPanel } from "./HelpPanel";
+import { IntentBar } from "./IntentBar";
+import { ProfileMenu } from "./ProfileMenu";
 
 export interface OrganizationSummary {
   id: string;
@@ -34,11 +35,15 @@ export interface OrganizationSummary {
   available: boolean;
   roles: { id: string; label: string; description: string }[];
   prompts: { id: string; text: string }[];
+  ideas: string[];
   about: AboutInfo | null;
 }
 
 interface View {
+  /** What is on screen now. After a policy block this is a blocked view, not the layout that was composed. */
   experience: ExperienceSpec;
+  /** The layout as originally composed. Re-runs and exports always start from this, so switching profile back restores the full view. */
+  base: ExperienceSpec;
   envelope: Envelope;
   /** The plan as requested (before policy narrowing), so it can be re-run under another role or filter. */
   calls: PlannedCall[];
@@ -50,9 +55,8 @@ interface Turn {
   calls: PlannedCall[];
 }
 
-type Note = { who: "you" | "paa"; text: string };
-
-const FOLLOW_UPS = ["Show that as a table", "Break it down by month", "Compare it with the previous period", "Focus on the worst performer"];
+/** Once a view exists the ghost text hints at what a follow-up could be. */
+const FOLLOW_UP_HINTS = ["Show that as a table", "Break it down by month", "Compare it with the previous period", "Make a PDF of this", "Email this to the leadership team"];
 
 const ORG_ICON: Record<string, (p: { width?: number; height?: number }) => ReactNode> = {
   northstar: FactoryIcon,
@@ -79,6 +83,8 @@ const STAGE_LABEL = (e: IntentEvent): string => {
       return e.kind === "pdf" ? "Generating the PDF" : e.kind === "pptx" ? "Building the slide deck" : "Drafting the email";
   }
 };
+
+const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
 
 /** Applies filter overrides to a plan; an empty value removes the input. */
 function withFilters(calls: PlannedCall[], values: Record<string, string>): PlannedCall[] {
@@ -159,7 +165,8 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
   const [text, setText] = useState("");
   const [view, setView] = useState<View | null>(null);
   const [turns, setTurns] = useState<Turn[]>([]);
-  const [notes, setNotes] = useState<Note[]>([]);
+  const [lastRequest, setLastRequest] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [progress, setProgress] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -175,14 +182,15 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
 
   function choose(id: string | null) {
     const next = organizations.find((o) => o.id === id);
-    // Switching organizations isolates everything: role, conversation, results and trace are all reset.
+    // Switching organizations isolates everything: profile, results, trace and any document are all reset.
     requestSeq.current++;
     setOrgId(id);
     setRoleId(next?.roles[0]?.id ?? "");
     setText("");
     setView(null);
     setTurns([]);
-    setNotes([]);
+    setLastRequest(null);
+    setMessage(null);
     setFilters({});
     setProgress([]);
     setError(null);
@@ -193,11 +201,12 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
     setActionNote(null);
   }
 
-  function adopt(next: View, request: string, answer: string) {
-    setView(next);
+  function adopt(next: Omit<View, "base">, request: string) {
+    setView({ ...next, base: next.experience });
     setFilters(initialFilters(next.experience, next.calls));
     setTurns((t) => [...t, { request, calls: next.calls }].slice(-3));
-    setNotes((n) => [...n, { who: "you" as const, text: request }, { who: "paa" as const, text: answer }].slice(-8));
+    setLastRequest(request);
+    setMessage(null);
   }
 
   /** Suggested requests have a curated fallback so the demo still works without a configured model. */
@@ -209,14 +218,19 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
     });
     const body = await res.json();
     if (!res.ok) throw new Error(body.error ?? "Request failed");
-    adopt(body as View, request, `Built “${(body as View).experience.title}” from a suggested request.`);
+    adopt(body as View, request);
+    setDeliverable(null);
+    setActionNote(null);
   }
 
-  async function ask(request: string, promptId?: string) {
+  async function ask(request: string) {
     if (!org || !request.trim() || busy) return;
+    // Typing one of the example requests exactly still works without a model, through the curated path.
+    const promptId = org.prompts.find((p) => normalize(p.text) === normalize(request))?.id;
     const seq = ++requestSeq.current;
     setBusy(true);
     setError(null);
+    setMessage(null);
     setProgress([]);
     setText("");
     try {
@@ -227,7 +241,7 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
           organizationId: org.id,
           roleId,
           text: request,
-          context: view ? { turns, experience: view.experience } : { turns },
+          context: view ? { turns, experience: view.base } : { turns },
         }),
       });
 
@@ -237,7 +251,7 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
           await runCurated(promptId, request, roleId);
           return;
         }
-        throw new Error("Live AI isn't configured on this server. Pick one of the suggested requests instead.");
+        throw new Error("Live AI isn't configured on this server. Press Tab to use an example request instead.");
       }
       if (!res.ok || !res.body) {
         const body = await res.json().catch(() => ({}));
@@ -257,29 +271,29 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
           const line = buffer.slice(0, newline).trim();
           buffer = buffer.slice(newline + 1);
           if (!line) continue;
-          const message = JSON.parse(line) as
+          const event = JSON.parse(line) as
             | ({ type: "event" } & IntentEvent)
             | { type: "result"; result: IntentResult }
             | { type: "error"; message: string };
           if (seq !== requestSeq.current) return;
-          if (message.type === "event") setProgress((p) => [...p, STAGE_LABEL(message)]);
-          else if (message.type === "result") result = message.result;
-          else throw new Error(message.message);
+          if (event.type === "event") setProgress((p) => [...p, STAGE_LABEL(event)]);
+          else if (event.type === "result") result = event.result;
+          else throw new Error(event.message);
         }
       }
       if (seq !== requestSeq.current || !result) return;
 
       if (result.kind === "experience") {
-        adopt(result, request, `Built “${result.experience.title}”.`);
+        adopt(result, request);
         setDeliverable(result.deliverable ?? null);
         setActionNote(result.actionError ?? null);
       } else if (result.kind === "deliverable") {
-        const label = result.deliverable ? { pdf: "PDF", pptx: "slide deck", email: "email draft" }[result.deliverable.kind] : "document";
-        setNotes((n) => [...n, { who: "you" as const, text: request }, { who: "paa" as const, text: result.actionError ? "I couldn't produce that document." : `Created your ${label}.` }].slice(-8));
+        setLastRequest(request);
         setDeliverable(result.deliverable ?? null);
         setActionNote(result.actionError ?? null);
       } else if (result.kind === "message") {
-        setNotes((n) => [...n, { who: "you" as const, text: request }, { who: "paa" as const, text: result.message }].slice(-8));
+        setLastRequest(request);
+        setMessage(result.message);
       } else {
         throw new Error(result.message);
       }
@@ -303,7 +317,7 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
       const res = await fetch("/api/paa/export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ organizationId: org.id, roleId, kind, experience: view.experience, calls: withFilters(view.calls, filters) }),
+        body: JSON.stringify({ organizationId: org.id, roleId, kind, experience: view.base, calls: withFilters(view.calls, filters) }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? "Request failed");
@@ -321,7 +335,7 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
     }
   }
 
-  /** Re-runs the current plan without the model: used for filter changes and role switches. */
+  /** Re-runs the current plan without the model: used for filter changes and profile switches. */
   async function rerun(nextFilters: Record<string, string>, role: string) {
     if (!org || !view) return;
     const seq = ++requestSeq.current;
@@ -333,7 +347,7 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
       const res = await fetch("/api/paa/rerun", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ organizationId: org.id, roleId: role, experience: view.experience, calls: withFilters(view.calls, nextFilters) }),
+        body: JSON.stringify({ organizationId: org.id, roleId: role, experience: view.base, calls: withFilters(view.calls, nextFilters) }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? "Request failed");
@@ -401,49 +415,43 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
     );
   }
 
-  // --- Workspace ----------------------------------------------------------
+  // --- Canvas -------------------------------------------------------------
 
-  const role = org.roles.find((r) => r.id === roleId);
-  const suggestions = view ? FOLLOW_UPS : [];
+  const empty = !view && !deliverable && !busy && !message && !actionNote;
+  const suggestions = view ? FOLLOW_UP_HINTS : org.prompts.map((p) => p.text);
 
   return (
     <div style={{ ["--accent" as string]: org.accent }}>
-      <div className="grid gap-6 lg:grid-cols-[19rem_minmax(0,1fr)] lg:items-start">
-        {/* Main column comes first on small screens so the composer is never buried. */}
-        <section className="order-1 grid min-w-0 gap-5 lg:order-2" aria-label="Workspace">
-          <div className="flex items-stretch gap-3">
-          <form
-            className="card flex min-w-0 flex-1 items-center gap-2 p-2 pl-4 shadow-[0_0_0_4px_color-mix(in_srgb,var(--accent)_8%,transparent)] focus-within:border-accent"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void ask(text);
-            }}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={() => choose(null)}
+          className="focus-ring group flex items-center gap-2.5 rounded-xl py-1 pr-3 text-left"
+          aria-label={`${org.name}. Back to all companies`}
+        >
+          <span
+            className="grid h-9 w-9 place-items-center rounded-xl text-white shadow-sm"
+            style={{ background: `linear-gradient(135deg, ${org.accent}, color-mix(in srgb, ${org.accent} 45%, #0b1020))` }}
+            aria-hidden="true"
           >
-            <span className="text-accent" aria-hidden="true">
-              <SparklesIcon width={20} height={20} />
-            </span>
-            <label htmlFor="intent" className="sr-only">
-              What would you like to see?
-            </label>
-            <input
-              id="intent"
-              value={text}
-              maxLength={500}
-              disabled={busy}
-              onChange={(e) => setText(e.target.value)}
-              placeholder={view ? "Refine, or ask something new…" : `Ask about ${org.name}…`}
-              className="min-w-0 flex-1 bg-transparent py-2.5 text-base outline-none placeholder:text-muted"
-            />
-            <button
-              type="submit"
-              disabled={busy || !text.trim()}
-              className="focus-ring inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-opacity disabled:opacity-40"
-              style={{ background: "linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, #7c3aed))" }}
-            >
-              Build
-              <SendIcon width={16} height={16} />
-            </button>
-          </form>
+            <OrgIcon id={org.id} size={19} />
+          </span>
+          <span className="leading-tight">
+            <span className="block text-sm font-semibold">{org.name}</span>
+            <span className="block text-[11px] text-muted group-hover:text-ink">← All companies · fictional, synthetic data</span>
+          </span>
+        </button>
+        <div className="flex items-center gap-2">
+          <ProfileMenu
+            profiles={org.roles}
+            currentId={roleId}
+            disabled={busy}
+            onSelect={(id) => {
+              setRoleId(id);
+              setMessage(null);
+              void rerun(filters, id);
+            }}
+          />
           <HelpPanel
             about={org.about}
             roleId={roleId}
@@ -451,198 +459,97 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
             busy={busy}
             acting={acting}
             aiAvailable={aiAvailable}
+            ideas={org.ideas}
             onAction={(kind) => void exportDoc(kind)}
             onAsk={(idea) => void ask(idea)}
           />
+        </div>
+      </div>
+
+      {/* One control. Centred and large on an empty canvas, a slim bar above the answer afterwards. */}
+      <div className={empty ? "mx-auto flex min-h-[52vh] max-w-3xl flex-col justify-center pb-10" : "sticky top-14 z-10 -mx-4 mt-4 bg-bg/80 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6"}>
+        {empty && (
+          <div className="mb-7 text-center">
+            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+              <span className="text-gradient">{org.name}</span>
+            </h2>
+            <p className="mt-2 text-muted">{org.tagline}</p>
           </div>
+        )}
+        <IntentBar value={text} onChange={setText} onSubmit={() => void ask(text)} disabled={busy} suggestions={suggestions} compact={!empty} />
+        {!empty && lastRequest && !busy && (
+          <p className="mt-2 truncate px-1 text-xs text-muted">
+            <span className="font-semibold uppercase tracking-wider">You asked</span> · {lastRequest}
+          </p>
+        )}
+        {!aiAvailable && empty && <p className="mt-3 text-center text-xs text-muted">Live AI isn&apos;t configured here, so only the example requests work.</p>}
+      </div>
 
-          {!aiAvailable && (
-            <p className="-mt-2 text-xs text-muted">Live AI isn&apos;t configured here, so only the suggested requests work.</p>
-          )}
-          {error && (
-            <p role="alert" className="flex items-start gap-2 rounded-xl border border-bad/40 bg-bad/10 px-4 py-3 text-sm text-bad">
-              {error}
-            </p>
-          )}
-
-          <div aria-live="polite" aria-busy={busy}>
-            {busy && <ProgressCard steps={progress} />}
-            {acting && !busy && <ProgressCard steps={[acting === "pdf" ? "Generating the PDF" : acting === "pptx" ? "Building the slide deck" : "Drafting the email"]} />}
+      <div className="mt-2 grid gap-5" aria-live="polite" aria-busy={busy}>
+        {error && (
+          <p role="alert" className="flex items-start gap-2 rounded-xl border border-bad/40 bg-bad/10 px-4 py-3 text-sm text-bad">
+            {error}
+          </p>
+        )}
+        {message && (
+          <div className="card rise flex items-start gap-3 p-5">
+            <span className="mt-0.5 text-accent">
+              <SparklesIcon width={18} height={18} />
+            </span>
+            <p className="text-sm leading-relaxed">{message}</p>
           </div>
+        )}
+        {busy && <ProgressCard steps={progress} />}
+        {acting && !busy && (
+          <ProgressCard steps={[acting === "pdf" ? "Generating the PDF" : acting === "pptx" ? "Building the slide deck" : "Drafting the email"]} />
+        )}
+        {actionNote && (
+          <p role="alert" className="flex items-start gap-2.5 rounded-xl border border-warn/40 bg-warn/10 px-4 py-3 text-sm text-warn">
+            <span className="mt-0.5 shrink-0">
+              <LockIcon width={18} height={18} />
+            </span>
+            {actionNote}
+          </p>
+        )}
+        {deliverable && <DeliverablePanel deliverable={deliverable} onClose={() => setDeliverable(null)} />}
 
-          {actionNote && (
-            <p role="alert" className="flex items-start gap-2.5 rounded-xl border border-warn/40 bg-warn/10 px-4 py-3 text-sm text-warn">
-              <span className="mt-0.5 shrink-0">
-                <LockIcon width={18} height={18} />
-              </span>
-              {actionNote}
-            </p>
-          )}
-          {deliverable && <DeliverablePanel deliverable={deliverable} onClose={() => setDeliverable(null)} />}
+        {busy && !view && <Skeleton />}
 
-          {/* Empty state: invite with example requests rather than a blank page. */}
-          {!view && !busy && !deliverable && (
-            <div className="card relative overflow-hidden p-6 sm:p-8">
-              <div
-                className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full opacity-30 blur-3xl"
-                style={{ background: "var(--accent)" }}
-                aria-hidden="true"
-              />
-              <span className="relative grid h-11 w-11 place-items-center rounded-2xl bg-accent/12 text-accent">
-                <SparklesIcon width={22} height={22} />
-              </span>
-              <h3 className="relative mt-4 text-xl font-semibold tracking-tight">Ask anything about {org.name}</h3>
-              <p className="relative mt-1.5 max-w-lg text-sm leading-relaxed text-muted">
-                Describe what you want to know. PAA picks the right services, runs them under your role&apos;s permissions, and builds the
-                view on the fly. Or start with a suggestion:
-              </p>
-              <ul className="relative mt-5 grid gap-3 sm:grid-cols-2">
-                {org.prompts.map((p) => (
-                  <li key={p.id}>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => void ask(p.text, p.id)}
-                      className="card-lift focus-ring group flex h-full w-full items-start justify-between gap-3 rounded-xl border border-line bg-surface p-4 text-left text-sm font-medium disabled:opacity-60"
-                    >
-                      <span>{p.text}</span>
-                      <span className="mt-0.5 text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-accent">
-                        <ArrowRightIcon width={16} height={16} />
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
+        {view && (
+          <div className={`grid gap-6 pb-10 transition-opacity ${busy ? "opacity-50" : ""}`}>
+            <DynamicRenderer
+              experience={view.experience}
+              envelope={view.envelope}
+              filters={{
+                values: filters,
+                onChange: (callKey, param, value) => {
+                  const next = { ...filters, [`${callKey}.${param}`]: value };
+                  setFilters(next);
+                  void rerun(next, roleId);
+                },
+              }}
+            />
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowTrace((s) => !s)}
+                aria-expanded={showTrace}
+                className="focus-ring inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-medium shadow-sm transition-colors hover:border-accent"
+              >
+                <LayersIcon width={16} height={16} />
+                {showTrace ? "Hide" : "Show"} how PAA built this
+                <span className={`transition-transform ${showTrace ? "rotate-180" : ""}`}>
+                  <ChevronIcon width={16} height={16} />
+                </span>
+              </button>
+              {showTrace && (
+                <div className="rise mt-4">
+                  <ArchitectureInspector trace={view.trace} />
+                </div>
+              )}
             </div>
-          )}
-
-          {busy && !view && <Skeleton />}
-
-          {view && (
-            <div className={`grid gap-6 transition-opacity ${busy ? "opacity-50" : ""}`}>
-              <DynamicRenderer
-                experience={view.experience}
-                envelope={view.envelope}
-                filters={{
-                  values: filters,
-                  onChange: (callKey, param, value) => {
-                    const next = { ...filters, [`${callKey}.${param}`]: value };
-                    setFilters(next);
-                    void rerun(next, roleId);
-                  },
-                }}
-              />
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setShowTrace((s) => !s)}
-                  aria-expanded={showTrace}
-                  className="focus-ring inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-medium shadow-sm transition-colors hover:border-accent"
-                >
-                  <LayersIcon width={16} height={16} />
-                  {showTrace ? "Hide" : "Show"} how PAA built this
-                  <span className={`transition-transform ${showTrace ? "rotate-180" : ""}`}>
-                    <ChevronIcon width={16} height={16} />
-                  </span>
-                </button>
-                {showTrace && (
-                  <div className="rise mt-4">
-                    <ArchitectureInspector trace={view.trace} />
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </section>
-
-        <aside className="order-2 grid min-w-0 content-start gap-4 lg:sticky lg:top-20 lg:order-1">
-          <div className="card overflow-hidden">
-            <div
-              className="relative flex items-center gap-3 p-4 text-white"
-              style={{ background: `linear-gradient(135deg, ${org.accent}, color-mix(in srgb, ${org.accent} 45%, #0b1020))` }}
-            >
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/15 backdrop-blur">
-                <OrgIcon id={org.id} />
-              </span>
-              <div className="min-w-0">
-                <h2 className="truncate font-semibold tracking-tight">{org.name}</h2>
-                <p className="text-xs text-white/80">Fictional · synthetic data</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => choose(null)}
-              className="focus-ring w-full border-t border-line px-4 py-2.5 text-left text-xs font-medium text-muted transition-colors hover:text-ink"
-            >
-              ← Switch company
-            </button>
           </div>
-
-          <div className="card p-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted" id="view-as">
-              View as
-            </p>
-            <div role="radiogroup" aria-labelledby="view-as" className="mt-3 grid gap-1.5 rounded-xl bg-surface-2 p-1">
-              {org.roles.map((r) => {
-                const selected = r.id === roleId;
-                return (
-                  <button
-                    key={r.id}
-                    type="button"
-                    role="radio"
-                    aria-checked={selected}
-                    disabled={busy}
-                    onClick={() => {
-                      if (selected) return;
-                      setRoleId(r.id);
-                      void rerun(filters, r.id);
-                    }}
-                    className={`focus-ring rounded-lg px-3 py-2 text-left text-sm font-medium transition-all disabled:opacity-60 ${
-                      selected ? "bg-surface text-ink shadow-sm ring-1 ring-line" : "text-muted hover:text-ink"
-                    }`}
-                  >
-                    {r.label}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="mt-3 text-xs leading-relaxed text-muted">{role?.description}</p>
-          </div>
-
-          {suggestions.length > 0 && (
-            <div className="card p-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted">Refine</p>
-              <ul className="mt-3 flex flex-wrap gap-2" aria-label="Follow-up suggestions">
-                {suggestions.map((c) => (
-                  <li key={c}>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => void ask(c)}
-                      className="focus-ring rounded-full border border-line bg-surface-2 px-3 py-1.5 text-left text-xs font-medium transition-colors enabled:hover:border-accent enabled:hover:text-accent disabled:opacity-60"
-                    >
-                      {c}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {notes.length > 0 && (
-            <div className="card p-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted">Conversation</p>
-              <ol className="mt-3 grid gap-2.5 text-sm" aria-label="Conversation">
-                {notes.map((n, i) => (
-                  <li key={i} className={n.who === "you" ? "font-medium" : "text-muted"}>
-                    <span className="mr-1.5 text-[11px] font-semibold uppercase tracking-wide text-accent">{n.who === "you" ? "You" : "PAA"}</span>
-                    {n.text}
-                  </li>
-                ))}
-              </ol>
-            </div>
-          )}
-        </aside>
+        )}
       </div>
     </div>
   );

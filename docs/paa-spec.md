@@ -40,6 +40,8 @@ A visitor can:
 6. Open the inspector to view intent, selected skills/services, permissions, evidence, and UI composition.
 7. Reset the session or switch companies (switching must isolate context).
 
+**Interface principle: one control, not a chatbot with buttons.** The workspace is a canvas. The only primary control is the intent field; the generated view *is* the interface. There is no sidebar, no grid of suggestion cards, no follow-up chips and no conversation log. Example intents appear as cycling ghost text inside the field (Tab accepts one; a quiet "try an example" link serves touch screens), and further ideas live behind Help. Who you are is a small profile menu (an avatar chip) that re-runs what is on screen under that profile's permissions. This keeps the ad-hoc nature of PAA visible: nothing on screen looks like a fixed feature.
+
 Avoid marketing-heavy animations. Prioritize fast response, legibility, accessibility, and clarity.
 
 ## 4. Fictional organizations and synthetic data
@@ -173,10 +175,13 @@ Each organization defines demo roles. The visitor picks a role with a **“View 
 |---|---|---|---|
 | Northstar | Line Supervisor | Output, defects and downtime for one assigned factory | Other factories; purchase order values |
 | Northstar | Operations Director | All factories, inventory, purchase orders | — |
-| Orbit | Customer Success | Accounts, feature usage, support tickets | Account-level revenue and invoices (aggregate MRR only) |
-| Orbit | Finance | MRR, churn, invoices, plans | Support ticket contents |
+| Orbit | CEO | Everything: MRR, churned revenue, churn, named accounts, usage, support | — |
+| Orbit | Head of Operations | Usage, support, churn, named at-risk accounts | **Revenue is redacted** (shown as a dash, never as zero); revenue services are denied |
+| Orbit | Junior Software Developer | Product usage and support tickets | Revenue, churn and named customer accounts (denied) |
 | Grove | Hiring Manager | Hiring funnel and training for own department | Other departments; leave and survey data |
 | Grove | HR Business Partner | All department aggregates | Individual employee records (denied for every role) |
+
+Policy has three outcomes, not two: a request can be **allowed**, **denied** outright, or allowed with **redaction or suppression** (a field the role may not see is withheld, or a group too small to report is hidden). Withholding is recorded as a policy event, shown to the visitor as a scope notice, and rendered honestly (a dash, never a zero). Orbit demonstrates all three: the Head of Operations sees churn but not the revenue lost, and no profile sees groups of fewer than five customers.
 
 Every capability declares its required permission and data scope; policy checks narrow queries (e.g. to one factory or department) as well as allow/deny. Denials and narrowing appear in the inspector. Canonical tests must include at least one denied and one narrowed request per organization.
 

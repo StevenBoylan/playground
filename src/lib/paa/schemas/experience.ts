@@ -13,7 +13,7 @@ const field = z.string().regex(/^[A-Za-z][A-Za-z0-9_]{0,63}$/);
 const format = z.enum(FORMATS);
 
 /** Inputs a FilterBar may change when it re-runs a service. Everything else is fixed by the plan. */
-export const FILTER_PARAMS = ["factoryId", "granularity"] as const;
+export const FILTER_PARAMS = ["factoryId", "granularity", "planId", "segment"] as const;
 export const CALL_KEY_PATTERN = /^[a-z][A-Za-z0-9]{0,31}$/;
 const callKey = z.string().regex(CALL_KEY_PATTERN);
 
@@ -155,7 +155,7 @@ function checkRows(
   if (first === undefined) return;
   for (const { name, numeric } of fields) {
     if (!Object.hasOwn(first, name)) errors.push(`${componentId}: field "${name}" not found in data`);
-    else if (numeric && typeof first[name] !== "number") errors.push(`${componentId}: field "${name}" is not numeric`);
+    else if (numeric && first[name] !== null && typeof first[name] !== "number") errors.push(`${componentId}: field "${name}" is not numeric`);
   }
 }
 

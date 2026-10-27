@@ -1,5 +1,5 @@
 import { getNorthstarDataset } from "./data/seed";
-import { northstarRoles, type RoleDefinition } from "./policies/roles";
+import { northstarRoles, orbitRoles, type RoleDefinition } from "./policies/roles";
 
 export interface OrganizationConfig {
   id: string;
@@ -28,8 +28,8 @@ export const organizations: OrganizationConfig[] = [
     domain: "B2B SaaS",
     tagline: "Revenue, churn and customer health.",
     accent: "#7c3aed",
-    available: false,
-    roles: [],
+    available: true,
+    roles: orbitRoles,
   },
   {
     id: "grove",

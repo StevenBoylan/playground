@@ -1,9 +1,10 @@
 import { listCapabilities } from "../capabilities/registry";
-import { DATA_START, DOWNTIME_CAUSES, REFERENCE_DATE, getNorthstarDataset } from "../data/seed";
+import { DATA_START, REFERENCE_DATE } from "../data/seed";
 import { previousMonth } from "../dates";
 import { getOrganization } from "../organizations";
 import type { ExperienceSpec } from "../schemas/experience";
 import { z } from "zod";
+import { orgPrompt } from "./org-prompts";
 import { ModelPlanSchema } from "./plan";
 import { lastMonth, lastQuarter, lastYear, lastYears, thisMonth, yearToDate } from "./windows";
 
@@ -35,7 +36,7 @@ function compact(schema: unknown): unknown {
  */
 export function buildSystemPrompt(organizationId: string): string {
   const org = getOrganization(organizationId);
-  const ds = getNorthstarDataset();
+  const p = orgPrompt(organizationId);
   const quarter = lastQuarter(REFERENCE_DATE);
   const month = thisMonth(REFERENCE_DATE);
   const prior = lastMonth(REFERENCE_DATE);
@@ -74,13 +75,10 @@ The data runs from ${DATA_START} to ${REFERENCE_DATE}. The reference date, ${REF
 - "since <month>": from the start of that month to ${REFERENCE_DATE}
 - With no period given, use the most recent complete quarter and say so in "assumptions".
 
-There are four years of history, so pick the granularity to suit the span: weekly for up to about six months, monthly for up to about two years, quarterly beyond that (a weekly chart over several years is unreadable). To compare years, use quarterly or monthly data over the whole span and let the visitor see the pattern, or make one call per period. Data has a seasonal pattern (quieter summers and December, plants closed from Christmas Eve to New Year's Day), a steady improvement in quality and growth in volume over the years, plus a few one-off incidents; do not assert causes you were not given, only report what the services return.
+There are four years of history, so pick the granularity to suit the span: weekly for up to about six months, monthly for up to about two years, quarterly beyond that (a weekly chart over several years is unreadable). To compare years, use quarterly or monthly data over the whole span and let the visitor see the pattern, or make one call per period. ${p.dataNotes}
 
 ## Company facts
-Factories: ${ds.factories.map((f) => `${f.id} (${f.name})`).join(", ")}.
-Lines: ${ds.lines.map((l) => `${l.id} (${l.name})`).join(", ")}.
-Downtime causes: ${DOWNTIME_CAUSES.join(", ")}.
-Rates (defect rate, change in rate, change percentage) are fractions: 0.012 means 1.2%. Use the "percent" format for them.
+${p.facts}
 
 ## Capabilities
 ${capabilities}
@@ -90,14 +88,14 @@ ${capabilities}
 
 Components:
 - PageHeading { text, subtitle? } - exactly one, first. Plain text: put the period in the subtitle.
-- Narrative { template } - one or two sentences that answer the question. Numbers and names come only from slots like {{results.production.summary.totalUnits|integer}} or {{results.defects.summary.worstLineLabel|text}}. Formats: integer, number, percent, minutes, text. Do NOT type any figure outside a slot: write "three factories" or "the last quarter", never "3 factories" or "Q3", and never write years, dates or percentages as digits. Factory and line names such as "Gdansk Line 2" are labels and may be written as normal text.
+- Narrative { template } - one or two sentences that answer the question. Numbers and names come only from slots like {{results.production.summary.totalUnits|integer}} or {{results.defects.summary.worstLineLabel|text}}. Formats: integer, number, percent, minutes, currency (euros), text. Do NOT type any figure outside a slot: write "three factories" or "the last quarter", never "3 factories" or "Q3", and never write years, dates or percentages as digits. Factory and line names such as "Gdansk Line 2" are labels and may be written as normal text.
 - KpiCard { title, dataRef, format } - one headline figure.
 - Comparison { title, currentLabel, previousLabel, currentRef, previousRef, format, higherIs } - two figures side by side with the change. higherIs says whether an increase is "good", "bad" or "neutral".
 - LineChart { title, dataRef, xField, yField, format? } - change over time; dataRef is a list, xField is a text field, yField a numeric one.
 - BarChart { title, dataRef, xField, yField, format? } - rankings and comparisons between groups.
 - DonutChart { title, dataRef, nameField, valueField, format? } - shares of a whole; use only with a few non-negative slices.
 - DataTable { title, dataRef, columns: [{ field, label, format? }] } - exact figures; columns are fields of the list's rows.
-- FilterBar { filters: [{ param, label, callKey, options: [{ value, label }] }] } - lets the visitor re-run one call with a different input, without asking you again. param is "factoryId" (options: "" for all factories, then dublin, gdansk, monterrey) or "granularity" (options: week, month, quarter). The call named by callKey must accept that input, and its own input should match the first option. Use sparingly, when switching is a natural next step.
+- FilterBar { filters: [{ param, label, callKey, options: [{ value, label }] }] } - lets the visitor re-run one call with a different input, without asking you again. ${p.filters} The call named by callKey must accept that input, and its own input should match the first option. Use sparingly, when switching is a natural next step.
 - Notice { level, text } - a caveat or assumption the visitor should know; no digits outside slots.
 - EmptyState { title, text } - only when a result would be empty.
 
@@ -123,7 +121,7 @@ ${JSON.stringify(compact(z.toJSONSchema(ModelPlanSchema, { io: "input", unrepres
 Omit optional fields you do not need instead of writing null. For "clarify" and "unsupported" give a "message", an empty "calls" list, and omit "experience".
 
 Example of a good reply:
-{"status":"ok","intent":"Show how Gdansk Line 2's defect rate changed week by week.","assumptions":["Used the last quarter."],"calls":[{"key":"trend","capabilityId":"northstar.defect_trend","rationale":"Defect rate over time for one line.","input":{"dateFrom":"2026-07-01","dateTo":"2026-09-30","granularity":"week","lineId":"gdansk-2"}}],"experience":{"title":"Gdansk Line 2 quality","components":[{"type":"PageHeading","id":"heading","text":"Gdansk Line 2 quality","subtitle":"Weekly defect rate"},{"type":"Narrative","id":"summary","template":"The defect rate moved from {{results.trend.summary.firstPeriodRate|percent}} to {{results.trend.summary.lastPeriodRate|percent}}."},{"type":"LineChart","id":"rate-line","title":"Defect rate by week","dataRef":"results.trend.rows","xField":"label","yField":"defectRate","format":"percent"}]}}`;
+${p.example}`;
 }
 
 /** The request-specific part: visitor text, plus the current view and recent turns for follow-ups. */

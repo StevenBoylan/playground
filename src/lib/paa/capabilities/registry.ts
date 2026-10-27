@@ -11,11 +11,26 @@ import {
   downtimeTrend,
   productionSummary,
 } from "./northstar";
+import { accountsAtRisk, adoption, churn, mrrTrend, revenueMix, segmentHealth, supportLoad } from "./orbit";
 
 const SERVICE_TIMEOUT_MS = 5000;
 
 const registry = new Map<string, RegisteredCapability>(
-  [productionSummary, defectRates, defectTrend, downtimeBreakdown, downtimeByLocation, downtimeTrend].map((c) => [c.id, c]),
+  [
+    productionSummary,
+    defectRates,
+    defectTrend,
+    downtimeBreakdown,
+    downtimeByLocation,
+    downtimeTrend,
+    mrrTrend,
+    revenueMix,
+    churn,
+    supportLoad,
+    adoption,
+    segmentHealth,
+    accountsAtRisk,
+  ].map((c) => [c.id, c]),
 );
 
 export function getCapability(id: string): RegisteredCapability | undefined {
@@ -87,6 +102,9 @@ export async function executeCapability(
 
   try {
     const output = await withTimeout(capability.run(scoped.input, access.context), SERVICE_TIMEOUT_MS);
+    if (output.disclosures?.length) {
+      checks = [...checks, ...output.disclosures.map((detail): PolicyCheck => ({ check: "disclosure", status: "narrowed", detail }))];
+    }
     const resultId = createHash("sha256")
       .update(JSON.stringify({ id: capability.id, params, data: output.data }))
       .digest("hex")

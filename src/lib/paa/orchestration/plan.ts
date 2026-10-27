@@ -87,6 +87,13 @@ const callInput = z.strictObject({
   factoryId: z.string().optional(),
   lineId: z.string().optional(),
   cause: z.string().optional(),
+  // Orbit
+  asOf: z.string().optional(),
+  planId: z.string().optional(),
+  segment: z.string().optional(),
+  feature: z.string().optional(),
+  category: z.string().optional(),
+  limit: z.number().optional(),
 });
 
 const deliverableBlock = z.discriminatedUnion("type", [

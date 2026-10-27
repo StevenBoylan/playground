@@ -238,7 +238,7 @@ describe("live path with a scripted model", () => {
 
   it("refuses unavailable organizations before calling the model", async () => {
     const adapter = scripted(trendPlan());
-    const result = await runIntent({ session: { organizationId: "orbit", roleId: "finance" }, text: "mrr", adapter });
+    const result = await runIntent({ session: { organizationId: "grove", roleId: "hr" }, text: "headcount", adapter });
     expect(result.kind).toBe("error");
     expect(adapter.requests).toHaveLength(0);
   });

@@ -12,6 +12,7 @@ interface HelpPanelProps {
   busy: boolean;
   acting: DocKind | null;
   aiAvailable: boolean;
+  ideas: string[];
   onAction: (kind: DocKind) => void;
   onAsk: (text: string) => void;
 }
@@ -22,14 +23,6 @@ const ACTIONS: { kind: DocKind; label: string; detail: string; icon: ReactNode }
   { kind: "email", label: "Draft an email", detail: "Shown in a simulated window. Nothing is sent.", icon: <MailIcon width={18} height={18} /> },
 ];
 
-/** Things a visitor can simply say. These go through the same model path as anything typed. */
-const IDEAS = [
-  "How has downtime changed by quarter over the last two years?",
-  "Which factory improved its defect rate the most since 2023?",
-  "Compare last year's production with this year's, by factory",
-  "Show Gdansk downtime by cause in early 2024",
-  "Make a branded pptx with this text: Lorem ipsum dolor sit amet, consectetur adipiscing elit",
-];
 const VIEW_IDEAS = ["Email this to the leadership team", "Make a PDF of this", "Turn this into a short slide deck"];
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -123,6 +116,13 @@ function AboutTab({ about, roleId }: { about: AboutInfo; roleId: string }) {
                     </li>
                   ))}
                 </ul>
+                {r.notes.length > 0 && (
+                  <ul className="mt-3 grid gap-1 border-t border-line pt-2.5 text-xs leading-relaxed text-muted">
+                    {r.notes.map((n) => (
+                      <li key={n}>{n}</li>
+                    ))}
+                  </ul>
+                )}
               </div>
             );
           })}
@@ -133,7 +133,7 @@ function AboutTab({ about, roleId }: { about: AboutInfo; roleId: string }) {
 }
 
 /** A small popover, kept out of the way: the demo is about asking, so the help is there when it is wanted. */
-export function HelpPanel({ about, roleId, hasView, busy, acting, aiAvailable, onAction, onAsk }: HelpPanelProps) {
+export function HelpPanel({ about, roleId, hasView, busy, acting, aiAvailable, ideas, onAction, onAsk }: HelpPanelProps) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"further" | "about">("further");
   const root = useRef<HTMLDivElement>(null);
@@ -182,7 +182,7 @@ export function HelpPanel({ about, roleId, hasView, busy, acting, aiAvailable, o
         aria-controls={panelId}
         aria-haspopup="dialog"
         onClick={() => setOpen((o) => !o)}
-        className="focus-ring card flex h-full min-h-[3.25rem] items-center gap-2 px-4 text-sm font-medium transition-colors hover:border-accent"
+        className="focus-ring card flex items-center gap-2 px-3.5 py-2.5 text-sm font-medium transition-colors hover:border-accent"
       >
         <QuestionIcon width={18} height={18} />
         Help
@@ -249,7 +249,7 @@ export function HelpPanel({ about, roleId, hasView, busy, acting, aiAvailable, o
                 <Section title="Or just ask">
                   {!aiAvailable && <p className="text-xs text-muted">These need the live AI, which isn&apos;t configured on this server.</p>}
                   <ul className="grid gap-1.5">
-                    {[...(hasView ? VIEW_IDEAS : []), ...IDEAS].map((idea) => (
+                    {[...(hasView ? VIEW_IDEAS : []), ...ideas].map((idea) => (
                       <li key={idea}>
                         <button
                           type="button"

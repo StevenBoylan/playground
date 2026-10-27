@@ -6,13 +6,14 @@ import type { ExperienceComponent, ExperienceSpec } from "../schemas/experience"
 import type { Session } from "../schemas/capability";
 import type { Decision, Trace } from "../schemas/trace";
 import { blockedComponents, executePlan, scopeNotice, validateForOrganization, type PlannedCall } from "./execute";
+import { orbitPrompts } from "./curated-orbit";
 import { lastMonth, lastQuarter, lastYears, thisMonth } from "./windows";
 
 interface CuratedCall extends PlannedCall {
   rationale: string;
 }
 
-interface CuratedPrompt {
+export interface CuratedPrompt {
   id: string;
   organizationId: string;
   text: string;
@@ -276,6 +277,9 @@ export const curatedPrompts: CuratedPrompt[] = [
     ],
   },
 ];
+
+// Each company's suggested requests live beside its own capabilities.
+curatedPrompts.push(...orbitPrompts);
 
 export function getCuratedPrompt(id: string): CuratedPrompt | undefined {
   return curatedPrompts.find((p) => p.id === id);
