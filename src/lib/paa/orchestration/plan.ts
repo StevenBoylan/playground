@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DOC_KINDS } from "../documents/types";
 import { FORMATS } from "../format";
 import { FILTER_PARAMS, type ExperienceSpec } from "../schemas/experience";
 import type { PlannedCall } from "./execute";
@@ -88,6 +89,23 @@ const callInput = z.strictObject({
   cause: z.string().optional(),
 });
 
+const deliverableBlock = z.discriminatedUnion("type", [
+  z.strictObject({ type: z.literal("heading"), text: z.string() }),
+  z.strictObject({ type: z.literal("paragraph"), template: z.string() }),
+  z.strictObject({ type: z.literal("bullets"), items: z.array(z.string()) }),
+  z.strictObject({ type: z.literal("kpi"), title: z.string(), dataRef: z.string(), format }),
+  z.strictObject({
+    type: z.literal("chart"),
+    chart: z.enum(["bar", "line", "donut"]),
+    title: z.string(),
+    dataRef: z.string(),
+    xField: z.string(),
+    yField: z.string(),
+    format: format.optional(),
+  }),
+  z.strictObject({ type: z.literal("table"), title: z.string(), dataRef: z.string(), columns: z.array(column) }),
+]);
+
 export const ModelPlanSchema = z.strictObject({
   status: z.enum(["ok", "clarify", "unsupported"]),
   /** For "clarify" and "unsupported": the message shown to the visitor. */
@@ -105,6 +123,18 @@ export const ModelPlanSchema = z.strictObject({
     }),
   ),
   experience: z.strictObject({ title: z.string(), components: z.array(modelComponent) }).optional(),
+  /** A document to produce: a PDF or slide deck file, or a simulated email draft. Validated strictly downstream. */
+  deliverable: z
+    .strictObject({
+      kind: z.enum(DOC_KINDS),
+      title: z.string(),
+      subtitle: z.string().optional(),
+      /** Email only: display names such as "Leadership team". Nothing is ever sent. */
+      to: z.array(z.string()).optional(),
+      subject: z.string().optional(),
+      blocks: z.array(deliverableBlock),
+    })
+    .optional(),
 });
 
 export type ModelPlan = z.infer<typeof ModelPlanSchema>;

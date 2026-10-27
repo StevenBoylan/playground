@@ -61,6 +61,55 @@ test("follow-up suggestions appear once a view exists, and free text explains wh
   await expect(page.getByText(/Live AI isn.t configured/).first()).toBeVisible();
 });
 
+test("a view can be taken further: PDF with download, slide deck preview and a simulated email", async ({ page }) => {
+  await page.goto("/paa");
+  await page.getByRole("button", { name: /Northstar/ }).click();
+  await page.getByRole("button", { name: /Compare downtime this month/ }).click();
+  await expect(page.getByText(/The largest increase came from Conveyor failure/)).toBeVisible();
+
+  // PDF: a real file the visitor can download.
+  await page.getByRole("button", { name: "Export PDF" }).click();
+  const download = page.getByRole("link", { name: "Download" });
+  await expect(download).toBeVisible();
+  await expect(download).toHaveAttribute("download", "downtime-this-month-against-last-month.pdf");
+  await expect(page.getByText(/PDF report ·/)).toBeVisible();
+
+  // Slides: a preview filmstrip of the real deck, plus a downloadable .pptx.
+  await page.getByRole("button", { name: "Slide deck" }).click();
+  await expect(page.getByRole("list", { name: "Slide previews" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Download" })).toHaveAttribute("download", /\.pptx$/);
+
+  // Email: a simulated window that never sends.
+  await page.getByRole("button", { name: "Draft email" }).click();
+  const email = page.getByRole("group", { name: "Simulated email draft" });
+  await expect(email).toBeVisible();
+  await expect(email).toContainText("Leadership team");
+  await expect(email.getByRole("img").first()).toBeVisible();
+  await email.getByRole("button", { name: "Send" }).click();
+  await expect(page.getByText("Message sent (simulated)")).toBeVisible();
+  await expect(page.getByText(/nothing was sent and no email service was contacted/)).toBeVisible();
+
+  // The inspector records the action as an executed, authorized event.
+  await page.getByRole("button", { name: /how PAA built this/ }).click();
+  await expect(page.getByText("northstar.action.draft_email").first()).toBeVisible();
+});
+
+test("actions are governed by role: a supervisor can export a PDF but not a deck or email", async ({ page }) => {
+  await page.goto("/paa");
+  await page.getByRole("button", { name: /Northstar/ }).click();
+  await page.getByRole("button", { name: /highest defect rates/ }).click();
+  await page.getByRole("radio", { name: "Line Supervisor" }).click();
+  await expect(page.getByText("Results are limited to the data this role is permitted to see.")).toBeVisible();
+
+  await page.getByRole("button", { name: "Slide deck" }).click();
+  await expect(page.getByText(/isn.t permitted to build slide decks/)).toBeVisible();
+  await expect(page.getByRole("link", { name: "Download" })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Export PDF" }).click();
+  await expect(page.getByRole("link", { name: "Download" })).toBeVisible();
+  await expect(page.getByText(/isn.t permitted/)).toHaveCount(0);
+});
+
 test("other companies are not yet selectable", async ({ page }) => {
   await page.goto("/paa");
   await expect(page.getByRole("button", { name: /Orbit Software/ })).toBeDisabled();

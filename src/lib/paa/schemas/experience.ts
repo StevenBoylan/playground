@@ -105,17 +105,21 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /** Free text must not carry figures; numbers may only arrive through bound slots. */
-function checkFreeText(
+export function checkFreeText(
   componentId: string,
   value: string,
   envelope: Envelope,
   errors: string[],
   allowedNames: string[],
+  verbatimSource?: string,
 ): void {
   // Entity names such as "Gdansk Line 2" are labels, not figures, so their digits are allowed.
   let text = value.replace(SLOT_PATTERN, "");
   for (const name of allowedNames) text = text.split(name).join("");
-  if (/\d/.test(text)) {
+  // Text the visitor typed themselves (for example "make slides saying ...") is their own wording, not a system
+  // claim, so it may be reproduced verbatim even when it contains digits.
+  const isVisitorText = verbatimSource !== undefined && value.trim().length > 0 && verbatimSource.includes(value.trim());
+  if (/\d/.test(text) && !isVisitorText) {
     errors.push(`${componentId}: free text contains a number outside a {{slot}}`);
   }
   for (const match of value.matchAll(SLOT_PATTERN)) {

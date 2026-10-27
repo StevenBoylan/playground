@@ -232,6 +232,23 @@ The model should return a typed JSON document, for example:
 
 **Interaction:** Filters must trigger typed service re-execution or safe client-side filtering of already authorized results. Follow-up prompts should update the composition and data; no fake clickable controls.
 
+## 9a. Deliverables and actions
+
+A view is not the end of a task. The playground can also **produce** things, so it behaves like an application and not a report viewer. Three deliverables exist, each available from a one-click button on any view (no model) and from free text ("make a branded pptx with this text…", "email this to the leadership team"):
+
+| Kind | What it is | Real or simulated |
+|---|---|---|
+| `pdf` | Branded A4 report with vector charts and tables | Real downloadable file, previewed inline |
+| `pptx` | Branded 16:9 deck with native, editable PowerPoint charts | Real downloadable file, previewed as slide cards |
+| `email` | Draft in a simulated mail window with the charts embedded as images | **Simulated.** Nothing is ever sent |
+
+Rules, matching the rest of the architecture:
+- **Declarative and validated.** The model (or the one-click path) produces a *document spec* of blocks (heading, paragraph, bullets, kpi, chart, table). Data comes only from bound references, and numbers in text only from `{{slots}}`, exactly as for views. The one exception is wording the visitor typed themselves, which may be reproduced verbatim. The model never writes files.
+- **Actions are capabilities.** Each action (`<org>.action.export_pdf`, `build_deck`, `draft_email`) has a required permission, is authorized by the backend before anything is generated, and appears in the inspector as a recorded event. Example policy: a Line Supervisor may export PDFs but may not build decks or draft email; an Operations Director may do all three.
+- **Documents cannot disagree with the screen.** One-click exports re-run the plan under the caller's role and re-validate the view, so a document only ever contains data that role may see.
+- **No external writes.** Email is a simulation, and the demo never contacts a mail service. Branding is configuration, not code, so the same generators serve every company.
+- A deliverable that needs no data (for example a deck from supplied placeholder text) plans zero service calls.
+
 ## 10. Inspector: “Show how PAA built this”
 
 The inspector is a core teaching tool. Display:

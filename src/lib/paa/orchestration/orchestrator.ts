@@ -1,5 +1,9 @@
+import { actionCapability, runAction } from "../actions/run";
 import { getCapability } from "../capabilities/registry";
-import { getOrganization } from "../organizations";
+import { brandFor } from "../documents/brand";
+import { resolveDeliverable } from "../documents/resolve";
+import type { Deliverable, DocKind, ResolvedDocument } from "../documents/types";
+import { entityNames, getOrganization } from "../organizations";
 import type { Envelope } from "../schemas/bindings";
 import type { Session } from "../schemas/capability";
 import type { ExperienceComponent, ExperienceSpec } from "../schemas/experience";
@@ -24,10 +28,22 @@ export type IntentEvent =
   | { stage: "understanding" }
   | { stage: "fetching"; capabilities: string[] }
   | { stage: "composing" }
-  | { stage: "repairing" };
+  | { stage: "repairing" }
+  | { stage: "generating"; kind: DocKind };
 
 export type IntentResult =
-  | { kind: "experience"; experience: ExperienceSpec; envelope: Envelope; calls: PlannedCall[]; trace: Trace }
+  | {
+      kind: "experience";
+      experience: ExperienceSpec;
+      envelope: Envelope;
+      calls: PlannedCall[];
+      trace: Trace;
+      deliverable?: Deliverable;
+      /** Set when a requested document was blocked or failed; safe to show. */
+      actionError?: string;
+    }
+  /** A document was requested without a new view (for example "make slides saying ..."). */
+  | { kind: "deliverable"; deliverable?: Deliverable; actionError?: string; trace: Trace }
   | { kind: "message"; status: "clarify" | "unsupported"; message: string; trace: Trace }
   | { kind: "error"; message: string };
 
@@ -42,6 +58,19 @@ export interface IntentOptions {
 
 const FRIENDLY_FAILURE =
   "I couldn't build a reliable view for that request. Try rephrasing it, or pick one of the suggested requests.";
+
+const ACTION_PHRASE: Record<DocKind, string> = {
+  pdf: "export PDF reports",
+  pptx: "build slide decks",
+  email: "draft emails",
+};
+
+/** The message shown when a document action did not run. Policy detail stays in the inspector. */
+export function actionFailureMessage(kind: DocKind, status: "denied" | "error"): string {
+  return status === "denied"
+    ? `Your current role isn't permitted to ${ACTION_PHRASE[kind]}. The policy layer blocked the action before anything was generated.`
+    : "The document could not be generated. Please try again.";
+}
 
 /** FilterBars must only offer inputs the planned call really accepts. */
 function checkFilterBars(components: ExperienceComponent[], calls: PlannedCall[]): string[] {
@@ -90,13 +119,17 @@ interface Attempt {
   calls: PlannedCall[];
   execution: PlanExecution;
   candidate: unknown;
+  document?: ResolvedDocument;
   errors: string[];
 }
 
-/** Executes a plan and validates its layout against what the services actually returned. */
-async function attempt(session: Session, plan: ModelPlan): Promise<Attempt> {
+const EMPTY_EXECUTION: PlanExecution = { envelope: { results: {} }, executions: [], failed: false, narrowed: false };
+
+/** Executes a plan, then validates its layout and any requested document against what the services returned. */
+async function attempt(session: Session, plan: ModelPlan, text: string): Promise<Attempt> {
   const calls = plannedCalls(plan);
-  const execution = await executePlan(session, calls);
+  // A deliverable that needs no data (for example slides with supplied text) may plan zero calls.
+  const execution = calls.length === 0 && plan.deliverable ? EMPTY_EXECUTION : await executePlan(session, calls);
   const errors: string[] = [];
 
   // A call rejected for bad input is something the model can fix; a policy denial is not.
@@ -106,17 +139,32 @@ async function attempt(session: Session, plan: ModelPlan): Promise<Attempt> {
   if (errors.length > 0 || execution.failed) return { calls, execution, candidate: undefined, errors };
 
   const candidate = candidateExperience(plan);
-  if (candidate === undefined) return { calls, execution, candidate, errors: ["The plan has no experience"] };
+  if (candidate === undefined && !plan.deliverable) {
+    return { calls, execution, candidate, errors: ["The plan has neither an experience nor a deliverable"] };
+  }
+  if (candidate !== undefined) {
+    const validated = validateForOrganization(session.organizationId, candidate, execution.envelope);
+    if (!validated.ok) errors.push(...validated.errors);
+    else errors.push(...checkFilterBars(validated.spec.components, calls));
+  }
 
-  const validated = validateForOrganization(session.organizationId, candidate, execution.envelope);
-  if (!validated.ok) errors.push(...validated.errors);
-  else errors.push(...checkFilterBars(validated.spec.components, calls));
-  return { calls, execution, candidate, errors };
+  let document: ResolvedDocument | undefined;
+  if (plan.deliverable) {
+    const resolved = resolveDeliverable(plan.deliverable, execution.envelope, {
+      brand: brandFor(session.organizationId),
+      allowedNames: entityNames(session.organizationId),
+      verbatimSource: text,
+    });
+    if (resolved.ok) document = resolved.document;
+    else errors.push(...resolved.errors);
+  }
+  return { calls, execution, candidate, document, errors };
 }
 
 /**
- * The live path. The model proposes calls and a layout; everything it proposes is authorized, executed,
- * validated and recorded by the backend before the visitor sees anything. One repair round is allowed.
+ * The live path. The model proposes calls, a layout and optionally a document; everything it proposes is
+ * authorized, executed, validated and recorded by the backend before the visitor sees anything.
+ * One repair round is allowed.
  */
 export async function runIntent(options: IntentOptions): Promise<IntentResult> {
   const { session, text, context, adapter, onEvent } = options;
@@ -151,9 +199,9 @@ export async function runIntent(options: IntentOptions): Promise<IntentResult> {
   let result: Attempt | undefined;
 
   for (let round = 0; round < 2; round++) {
-    onEvent?.({ stage: "fetching", capabilities: plan.calls.map((c) => c.capabilityId) });
+    if (plan.calls.length > 0) onEvent?.({ stage: "fetching", capabilities: plan.calls.map((c) => c.capabilityId) });
     try {
-      result = await attempt(session, plan);
+      result = await attempt(session, plan, text);
     } catch (error) {
       if (!(error instanceof PlanError)) throw error;
       result = { calls: [], execution: { envelope: { results: {} }, executions: [], failed: true, narrowed: false }, candidate: undefined, errors: [error.message] };
@@ -180,7 +228,7 @@ export async function runIntent(options: IntentOptions): Promise<IntentResult> {
   const { calls, execution } = result;
   const trace: Trace = {
     ...baseTrace(session, text, plan),
-    executions: execution.executions,
+    executions: [...execution.executions],
     validation: { repaired, firstErrors },
   };
 
@@ -207,6 +255,25 @@ export async function runIntent(options: IntentOptions): Promise<IntentResult> {
     return { kind: "error", message: FRIENDLY_FAILURE };
   }
 
+  // The requested document, if any, only now passes through the action's own policy check.
+  let deliverable: Deliverable | undefined;
+  let actionError: string | undefined;
+  if (result.document) {
+    onEvent?.({ stage: "generating", kind: result.document.kind });
+    const action = await runAction(session, result.document);
+    trace.executions.push(action.record);
+    trace.decisions.push({
+      capabilityId: actionCapability(session.organizationId, result.document.kind).id,
+      rationale: `Produces the requested ${result.document.kind === "email" ? "email draft" : result.document.kind.toUpperCase()} from the validated results.`,
+      source: "curated",
+    });
+    trace.deliverable = { kind: result.document.kind, title: result.document.title, blockCount: result.document.blocks.length };
+    deliverable = action.deliverable;
+    if (action.record.status !== "ok") actionError = actionFailureMessage(result.document.kind, action.record.status);
+  }
+
+  if (result.candidate === undefined) return { kind: "deliverable", deliverable, actionError, trace };
+
   const validated = validateForOrganization(session.organizationId, result.candidate, execution.envelope);
   if (!validated.ok) return { kind: "error", message: FRIENDLY_FAILURE };
 
@@ -218,5 +285,5 @@ export async function runIntent(options: IntentOptions): Promise<IntentResult> {
     if (withNotice.ok) spec = withNotice.spec;
   }
   trace.experience = treeOf(spec);
-  return { kind: "experience", experience: spec, envelope: execution.envelope, calls, trace };
+  return { kind: "experience", experience: spec, envelope: execution.envelope, calls, trace, deliverable, actionError };
 }

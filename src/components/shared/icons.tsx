@@ -118,3 +118,37 @@ export const GithubIcon = (p: P) => (
     <path d="M9 19c-4 1.2-4-2-6-2.5m12 4.5v-3.2a2.8 2.8 0 00-.8-2.2c2.6-.3 5.3-1.3 5.3-5.8a4.5 4.5 0 00-1.2-3.1 4.2 4.2 0 00-.1-3.1s-1-.3-3.2 1.2a11 11 0 00-5.8 0C6.9 3.2 5.9 3.5 5.9 3.5a4.2 4.2 0 00-.1 3.1A4.5 4.5 0 004.6 9.7c0 4.5 2.7 5.5 5.3 5.8a2.8 2.8 0 00-.8 2.2V21" />
   </Icon>
 );
+export const FileIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M7 3h7l5 5v13H7V3z" />
+    <path d="M14 3v5h5M10 13h6M10 17h6" />
+  </Icon>
+);
+export const SlidesIcon = (p: P) => (
+  <Icon {...p}>
+    <rect x="3" y="4" width="18" height="12" rx="2" />
+    <path d="M8 20h8M12 16v4M7 12l3-3 2.5 2.5L16 8" />
+  </Icon>
+);
+export const MailIcon = (p: P) => (
+  <Icon {...p}>
+    <rect x="3" y="5" width="18" height="14" rx="2.5" />
+    <path d="M3.5 7.5L12 13l8.5-5.5" />
+  </Icon>
+);
+export const DownloadIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M12 4v11M7 11l5 5 5-5M5 20h14" />
+  </Icon>
+);
+export const CloseIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M6 6l12 12M18 6L6 18" />
+  </Icon>
+);
+export const LockIcon = (p: P) => (
+  <Icon {...p}>
+    <rect x="5" y="11" width="14" height="9" rx="2" />
+    <path d="M8 11V8a4 4 0 118 0v3" />
+  </Icon>
+);

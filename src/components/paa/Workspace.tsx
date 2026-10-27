@@ -15,9 +15,15 @@ import {
   LeafIcon,
   OrbitIcon,
   SendIcon,
+  FileIcon,
+  LockIcon,
+  MailIcon,
+  SlidesIcon,
   SparklesIcon,
 } from "@/components/shared/icons";
+import type { Deliverable, DocKind } from "@/lib/paa/documents/types";
 import { ArchitectureInspector } from "./ArchitectureInspector";
+import { DeliverablePanel } from "./DeliverablePanel";
 import { DynamicRenderer } from "./DynamicRenderer";
 
 export interface OrganizationSummary {
@@ -69,6 +75,8 @@ const STAGE_LABEL = (e: IntentEvent): string => {
       return "Composing and checking the view";
     case "repairing":
       return "Fixing the layout against the data";
+    case "generating":
+      return e.kind === "pdf" ? "Generating the PDF" : e.kind === "pptx" ? "Building the slide deck" : "Drafting the email";
   }
 };
 
@@ -157,6 +165,9 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showTrace, setShowTrace] = useState(false);
+  const [deliverable, setDeliverable] = useState<Deliverable | null>(null);
+  const [acting, setActing] = useState<DocKind | null>(null);
+  const [actionNote, setActionNote] = useState<string | null>(null);
   const [aiAvailable, setAiAvailable] = useState(true);
   const requestSeq = useRef(0);
 
@@ -177,6 +188,9 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
     setError(null);
     setBusy(false);
     setShowTrace(false);
+    setDeliverable(null);
+    setActing(null);
+    setActionNote(null);
   }
 
   function adopt(next: View, request: string, answer: string) {
@@ -257,6 +271,13 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
 
       if (result.kind === "experience") {
         adopt(result, request, `Built “${result.experience.title}”.`);
+        setDeliverable(result.deliverable ?? null);
+        setActionNote(result.actionError ?? null);
+      } else if (result.kind === "deliverable") {
+        const label = result.deliverable ? { pdf: "PDF", pptx: "slide deck", email: "email draft" }[result.deliverable.kind] : "document";
+        setNotes((n) => [...n, { who: "you" as const, text: request }, { who: "paa" as const, text: result.actionError ? "I couldn't produce that document." : `Created your ${label}.` }].slice(-8));
+        setDeliverable(result.deliverable ?? null);
+        setActionNote(result.actionError ?? null);
       } else if (result.kind === "message") {
         setNotes((n) => [...n, { who: "you" as const, text: request }, { who: "paa" as const, text: result.message }].slice(-8));
       } else {
@@ -272,6 +293,34 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
     }
   }
 
+  /** One-click documents (no model): the plan is re-run under the current role, then the action is authorized. */
+  async function exportDoc(kind: DocKind) {
+    if (!org || !view || busy || acting) return;
+    setActing(kind);
+    setError(null);
+    setActionNote(null);
+    try {
+      const res = await fetch("/api/paa/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ organizationId: org.id, roleId, kind, experience: view.experience, calls: withFilters(view.calls, filters) }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? "Request failed");
+      const made = (body.deliverable ?? null) as Deliverable | null;
+      setDeliverable(made);
+      setActionNote(body.actionError ?? null);
+      const executions = body.executions as ExecutionRecord[];
+      setView((v) =>
+        v ? { ...v, trace: { ...v.trace, executions, deliverable: made ? { kind, title: made.document.title, blockCount: made.document.blocks.length } : undefined } } : v,
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Request failed");
+    } finally {
+      setActing(null);
+    }
+  }
+
   /** Re-runs the current plan without the model: used for filter changes and role switches. */
   async function rerun(nextFilters: Record<string, string>, role: string) {
     if (!org || !view) return;
@@ -279,6 +328,8 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
     setBusy(true);
     setError(null);
     try {
+      setDeliverable(null);
+      setActionNote(null);
       const res = await fetch("/api/paa/rerun", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -406,8 +457,18 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
             {busy && <ProgressCard steps={progress} />}
           </div>
 
+          {actionNote && (
+            <p role="alert" className="flex items-start gap-2.5 rounded-xl border border-warn/40 bg-warn/10 px-4 py-3 text-sm text-warn">
+              <span className="mt-0.5 shrink-0">
+                <LockIcon width={18} height={18} />
+              </span>
+              {actionNote}
+            </p>
+          )}
+          {deliverable && <DeliverablePanel deliverable={deliverable} onClose={() => setDeliverable(null)} />}
+
           {/* Empty state: invite with example requests rather than a blank page. */}
-          {!view && !busy && (
+          {!view && !busy && !deliverable && (
             <div className="card relative overflow-hidden p-6 sm:p-8">
               <div
                 className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full opacity-30 blur-3xl"
@@ -446,6 +507,29 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
 
           {view && (
             <div className={`grid gap-6 transition-opacity ${busy ? "opacity-50" : ""}`}>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted">Take it further</p>
+                <div className="flex flex-wrap gap-2">
+                  {(
+                    [
+                      { kind: "pdf", label: "Export PDF", icon: <FileIcon width={16} height={16} /> },
+                      { kind: "pptx", label: "Slide deck", icon: <SlidesIcon width={16} height={16} /> },
+                      { kind: "email", label: "Draft email", icon: <MailIcon width={16} height={16} /> },
+                    ] as const
+                  ).map((a) => (
+                    <button
+                      key={a.kind}
+                      type="button"
+                      disabled={busy || acting !== null}
+                      onClick={() => void exportDoc(a.kind)}
+                      className="focus-ring inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-3.5 py-2 text-sm font-medium shadow-sm transition-colors enabled:hover:border-accent disabled:opacity-60"
+                    >
+                      {acting === a.kind ? <span className="pulse-dot h-2.5 w-2.5 rounded-full bg-accent" aria-hidden="true" /> : a.icon}
+                      {a.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <DynamicRenderer
                 experience={view.experience}
                 envelope={view.envelope}

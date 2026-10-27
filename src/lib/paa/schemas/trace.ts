@@ -34,6 +34,8 @@ export interface Trace {
   decisions: Decision[];
   executions: ExecutionRecord[];
   experience: { componentCount: number; tree: { id: string; type: string; dataRef?: string }[] };
+  /** Present when a document was requested: what was asked for, before the action's own policy check ran. */
+  deliverable?: { kind: string; title: string; blockCount: number };
   /** Present for model-composed views: whether validation forced a repair round and what it objected to. */
   validation?: { repaired: boolean; firstErrors: string[] };
 }
