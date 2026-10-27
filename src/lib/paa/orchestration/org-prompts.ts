@@ -1,3 +1,4 @@
+import { COURSES, DEPARTMENTS, LEAVE_TYPES, LEVELS, LOCATIONS, STAGES, THEMES } from "../data/grove-seed";
 import { FEATURES, PLANS, SEGMENTS } from "../data/orbit-seed";
 import { DOWNTIME_CAUSES, getNorthstarDataset } from "../data/seed";
 
@@ -40,6 +41,20 @@ Some fields (revenue) come back as null for roles that may not see them. Never t
   };
 }
 
+function grove(): OrgPrompt {
+  return {
+    facts: `Departments: ${DEPARTMENTS.map((d) => `${d.id} (${d.name})`).join(", ")}.
+Levels: ${LEVELS.map((l) => `${l.id} (${l.name})`).join(", ")}. Locations: ${LOCATIONS.map((l) => l.id).join(", ")}.
+Hiring stages: ${STAGES.map((s) => s.id).join(", ")}. Mandatory courses: ${COURSES.map((c) => c.id).join(", ")}. Leave types: ${LEAVE_TYPES.map((t) => t.id).join(", ")}. Survey themes: ${THEMES.map((t) => t.id).join(", ")}.
+Grove holds AGGREGATE people data only. There are no individual employee records, names, salaries, performance ratings or health details, and none can be retrieved. If the visitor asks about a named person, an individual's pay, performance, leave or any identifiable individual, answer with status "unsupported" and explain that only aggregates exist.
+Groups of fewer than five people are never reported on their own: breakdowns combine them into a row called "Other (small groups)" and some figures come back as null. When a single small group is asked for directly, the rows come back empty and every figure is null: say in a Notice that the group is too small to report, and do not build a chart or narrative that implies a number. Never treat null as zero, do not try to work out the hidden group by subtraction, and do not claim to know who is in "Other". Legal is a very small department and will usually appear inside "Other".
+Headcount, hiring and leave data are monthly; training completion and the engagement survey are quarterly. Rates and shares are fractions: 0.12 means 12%; use "percent". Engagement scores are 0 to 100: use "number".`,
+    dataNotes: `Data shows a hiring burst before 2023, a hiring freeze in spring 2023, steady growth, a hiring surge in 2025, winter sick-leave peaks, and a few one-off incidents; do not assert causes you were not given, only report what the services return.`,
+    filters: `param is "department" (options: "" for all departments, then ${DEPARTMENTS.filter((d) => d.id !== "legal").map((d) => d.id).join(", ")}) or "granularity" (options: month, quarter).`,
+    example: `{"status":"ok","intent":"Show how headcount changed over the last two years.","assumptions":["Quarterly grouping keeps two years readable."],"calls":[{"key":"trend","capabilityId":"grove.headcount_trend","rationale":"Headcount, hires and leavers by quarter.","input":{"dateFrom":"2024-10-01","dateTo":"2026-09-30","granularity":"quarter"}}],"experience":{"title":"Headcount over two years","components":[{"type":"PageHeading","id":"heading","text":"Headcount over two years","subtitle":"Quarterly"},{"type":"Narrative","id":"summary","template":"Headcount moved from {{results.trend.summary.startHeadcount|integer}} to {{results.trend.summary.currentHeadcount|integer}}."},{"type":"LineChart","id":"headcount-line","title":"Headcount by quarter","dataRef":"results.trend.rows","xField":"label","yField":"headcount","format":"integer"}]}}`,
+  };
+}
+
 export function orgPrompt(organizationId: string): OrgPrompt {
-  return organizationId === "orbit" ? orbit() : northstar();
+  return organizationId === "grove" ? grove() : organizationId === "orbit" ? orbit() : northstar();
 }

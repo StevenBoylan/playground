@@ -21,6 +21,14 @@ const IDEAS: Record<string, string[]> = {
   ],
 };
 
+IDEAS.grove = [
+  "How has Engineering attrition changed over the last two years?",
+  "Where do Engineering candidates drop out, compared with Sales?",
+  "Which department is furthest behind on security training?",
+  "How did sick leave change around the start of 2025?",
+  PLACEHOLDER_DECK,
+];
+
 export function ideasFor(organizationId: string): string[] {
   return IDEAS[organizationId] ?? [PLACEHOLDER_DECK];
 }

@@ -201,8 +201,8 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
     setActionNote(null);
   }
 
-  function adopt(next: Omit<View, "base">, request: string) {
-    setView({ ...next, base: next.experience });
+  function adopt(next: Omit<View, "base"> & { base?: ExperienceSpec }, request: string) {
+    setView({ ...next, base: next.base ?? next.experience });
     setFilters(initialFilters(next.experience, next.calls));
     setTurns((t) => [...t, { request, calls: next.calls }].slice(-3));
     setLastRequest(request);

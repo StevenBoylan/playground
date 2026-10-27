@@ -91,3 +91,61 @@ export const orbitRoles: RoleDefinition[] = [
     scopeLabel: "Product usage and support only",
   },
 ];
+
+/**
+ * Grove's permissions. Everything is an aggregate: there is no permission for individual employee records because
+ * no capability exposes them, so they are unavailable to every profile.
+ */
+export const GROVE_PERMISSIONS = {
+  headcount: "grove.headcount.read",
+  hiring: "grove.hiring.read",
+  training: "grove.training.read",
+  leave: "grove.leave.read",
+  engagement: "grove.engagement.read",
+  exportPdf: "grove.action.pdf",
+  exportPptx: "grove.action.pptx",
+  draftEmail: "grove.action.email",
+} as const;
+
+export const groveRoles: RoleDefinition[] = [
+  {
+    id: "hr_business_partner",
+    label: "HR Business Partner",
+    description: "Every department aggregate, including leave and engagement. Can produce PDFs and email drafts. Individual records are not available to anyone.",
+    permissions: [
+      GROVE_PERMISSIONS.headcount,
+      GROVE_PERMISSIONS.hiring,
+      GROVE_PERMISSIONS.training,
+      GROVE_PERMISSIONS.leave,
+      GROVE_PERMISSIONS.engagement,
+      GROVE_PERMISSIONS.exportPdf,
+      GROVE_PERMISSIONS.draftEmail,
+    ],
+    scope: { factoryIds: "all", departments: "all" },
+    scopeLabel: "All departments, including leave and engagement",
+  },
+  {
+    id: "executive",
+    label: "Executive",
+    description: "Company-wide headcount, hiring, training and engagement. No leave data. Can produce PDFs, slide decks and email drafts.",
+    permissions: [
+      GROVE_PERMISSIONS.headcount,
+      GROVE_PERMISSIONS.hiring,
+      GROVE_PERMISSIONS.training,
+      GROVE_PERMISSIONS.engagement,
+      GROVE_PERMISSIONS.exportPdf,
+      GROVE_PERMISSIONS.exportPptx,
+      GROVE_PERMISSIONS.draftEmail,
+    ],
+    scope: { factoryIds: "all", departments: "all" },
+    scopeLabel: "All departments, without leave data",
+  },
+  {
+    id: "hiring_manager",
+    label: "Hiring Manager (Engineering)",
+    description: "Headcount, hiring and training for the Engineering department only. No leave or engagement data. Can produce PDFs.",
+    permissions: [GROVE_PERMISSIONS.headcount, GROVE_PERMISSIONS.hiring, GROVE_PERMISSIONS.training, GROVE_PERMISSIONS.exportPdf],
+    scope: { factoryIds: "all", departments: ["engineering"] },
+    scopeLabel: "Engineering only",
+  },
+];

@@ -13,7 +13,7 @@ const field = z.string().regex(/^[A-Za-z][A-Za-z0-9_]{0,63}$/);
 const format = z.enum(FORMATS);
 
 /** Inputs a FilterBar may change when it re-runs a service. Everything else is fixed by the plan. */
-export const FILTER_PARAMS = ["factoryId", "granularity", "planId", "segment"] as const;
+export const FILTER_PARAMS = ["factoryId", "granularity", "planId", "segment", "department"] as const;
 export const CALL_KEY_PATTERN = /^[a-z][A-Za-z0-9]{0,31}$/;
 const callKey = z.string().regex(CALL_KEY_PATTERN);
 
@@ -79,7 +79,7 @@ const component = z.discriminatedUnion("type", [
           label,
           /** Key of the planned service call this filter re-runs. */
           callKey: callKey,
-          options: z.array(z.strictObject({ value: z.string().max(40), label })).min(2).max(8),
+          options: z.array(z.strictObject({ value: z.string().max(40), label })).min(2).max(12),
         }),
       )
       .min(1)

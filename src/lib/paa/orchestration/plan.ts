@@ -94,6 +94,10 @@ const callInput = z.strictObject({
   feature: z.string().optional(),
   category: z.string().optional(),
   limit: z.number().optional(),
+  // Grove
+  department: z.string().optional(),
+  course: z.string().optional(),
+  type: z.string().optional(),
 });
 
 const deliverableBlock = z.discriminatedUnion("type", [

@@ -262,8 +262,76 @@ test.describe("Orbit: three profiles, three levels of access", () => {
   });
 });
 
-test("companies that are not built yet are not selectable", async ({ page }) => {
+test.describe("Grove: privacy is enforced in the services, not the screen", () => {
+  const HEADCOUNT = "Show headcount changes by department this year.";
+  const FUNNEL = "Where are candidates dropping out of the hiring funnel?";
+  const LEAVE = "How much leave is being taken, and of what kind?";
+  const ENGAGEMENT = "How engaged are people, and what is driving it?";
+
+  test("small groups are folded into Other, never shown on their own, and the screen says so", async ({ page }) => {
+    await open(page, /Grove People/);
+    await ask(page, HEADCOUNT);
+    await expect(page.getByText(/Headcount moved from/)).toBeVisible();
+    const table = page.getByRole("table");
+    await expect(table).toContainText("Other (small groups)");
+    // Legal has four people, so it can never appear by itself.
+    await expect(table).not.toContainText("Legal");
+    await expect(page.getByText("Results are limited to the data this role is permitted to see.")).toBeVisible();
+
+    await page.getByRole("button", { name: /how PAA built this/ }).click();
+    await expect(page.getByText(/Groups with fewer than five people are combined into/).first()).toBeVisible();
+  });
+
+  test("the Hiring Manager sees Engineering only, and leave and engagement are refused", async ({ page }) => {
+    await open(page, /Grove People/);
+    await profile(page, "Hiring Manager");
+    await ask(page, HEADCOUNT);
+    await expect(page.getByText("Results are limited to the data this role is permitted to see.")).toBeVisible();
+    const table = page.getByRole("table");
+    await expect(table).toContainText("Engineering");
+    await expect(table).not.toContainText("Sales");
+
+    await ask(page, LEAVE);
+    await expect(page.getByText("This request could not be completed for the selected role.")).toBeVisible();
+    await ask(page, ENGAGEMENT);
+    await expect(page.getByText("This request could not be completed for the selected role.")).toBeVisible();
+  });
+
+  test("the Executive sees engagement but not leave, and the HR Business Partner sees both", async ({ page }) => {
+    await open(page, /Grove People/);
+    await profile(page, "Executive");
+    await ask(page, ENGAGEMENT);
+    await expect(page.getByText(/Overall engagement is/)).toBeVisible();
+    await ask(page, LEAVE);
+    await expect(page.getByText("This request could not be completed for the selected role.")).toBeVisible();
+
+    await profile(page, "HR Business Partner");
+    await expect(page.getByText(/days of leave were taken/)).toBeVisible();
+  });
+
+  test("the hiring funnel filters by department without calling the model", async ({ page }) => {
+    await open(page, /Grove People/);
+    await ask(page, FUNNEL);
+    await expect(page.getByText(/The biggest loss is at/)).toBeVisible();
+    const narrative = page.getByText(/Offers are accepted/);
+    const before = await narrative.textContent();
+    await page.getByLabel("Department").selectOption("engineering");
+    await expect(narrative).not.toHaveText(before ?? "");
+  });
+
+  test("About states the privacy design, and that no profile can see individuals", async ({ page }) => {
+    await open(page, /Grove People/);
+    await page.getByRole("button", { name: "Help" }).click();
+    const panel = page.getByRole("dialog", { name: "Help" });
+    await panel.getByRole("tab", { name: "About" }).click();
+    await expect(panel.getByText(/holds no individual employee records at all/)).toBeVisible();
+    await expect(panel.getByText(/No figure describes fewer than 5 people/)).toBeVisible();
+    await expect(panel.getByText("Engineering only")).toBeVisible();
+    await expect(panel.getByText("See individual employee records (no profile can)").first()).toBeVisible();
+  });
+});
+
+test("all three companies are available and start clean", async ({ page }) => {
   await page.goto("/paa");
-  await expect(page.getByRole("button", { name: /Grove People/ })).toBeDisabled();
-  await expect(page.getByRole("button", { name: /Orbit Software/ })).toBeEnabled();
+  for (const name of [/Northstar/, /Orbit Software/, /Grove People/]) await expect(page.getByRole("button", { name })).toBeEnabled();
 });

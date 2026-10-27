@@ -31,7 +31,12 @@ export interface ServiceResult<O> extends ServiceOutput<O> {
 export interface Scope {
   /** Factories the caller may see, or "all". */
   factoryIds: string[] | "all";
+  /** Departments the caller may see, or "all" when omitted. */
+  departments?: string[] | "all";
 }
+
+/** The input field a capability uses to carry a role's data scope. */
+export type ScopeField = "factoryId" | "department";
 
 export interface AuthorizedContext {
   organizationId: string;
@@ -53,7 +58,7 @@ export interface Capability<I, O> {
   explanation: string;
   requiredPermission: string;
   /** Input field that carries the scope restriction, narrowed by policy when the role is scoped. */
-  scopeField?: "factoryId";
+  scopeField?: ScopeField;
   datasetVersion: string;
   inputSchema: z.ZodType<I>;
   outputSchema: z.ZodType<O>;

@@ -11,6 +11,7 @@ import {
   downtimeTrend,
   productionSummary,
 } from "./northstar";
+import { engagement, headcountChange, headcountTrend, hiringFunnel, leaveSummary, trainingCompletion } from "./grove";
 import { accountsAtRisk, adoption, churn, mrrTrend, revenueMix, segmentHealth, supportLoad } from "./orbit";
 
 const SERVICE_TIMEOUT_MS = 5000;
@@ -30,6 +31,12 @@ const registry = new Map<string, RegisteredCapability>(
     adoption,
     segmentHealth,
     accountsAtRisk,
+    headcountTrend,
+    headcountChange,
+    hiringFunnel,
+    trainingCompletion,
+    leaveSummary,
+    engagement,
   ].map((c) => [c.id, c]),
 );
 

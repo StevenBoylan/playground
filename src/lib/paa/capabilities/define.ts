@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { AuthorizedContext, Capability, ServiceOutput } from "../schemas/capability";
+import type { AuthorizedContext, Capability, ScopeField, ServiceOutput } from "../schemas/capability";
 
 /** A capability with its generic types erased so a registry can hold many of them. */
 export interface RegisteredCapability {
@@ -8,7 +8,7 @@ export interface RegisteredCapability {
   description: string;
   explanation: string;
   requiredPermission: string;
-  scopeField?: "factoryId";
+  scopeField?: ScopeField;
   datasetVersion: string;
   /** JSON Schema of the inputs and outputs, used to brief the model and kept in sync with validation. */
   inputJsonSchema: unknown;

@@ -6,7 +6,7 @@ import type { Deliverable, DocKind, ResolvedDocument } from "../documents/types"
 import { entityNames, getOrganization } from "../organizations";
 import type { Envelope } from "../schemas/bindings";
 import type { Session } from "../schemas/capability";
-import type { ExperienceComponent, ExperienceSpec } from "../schemas/experience";
+import { ExperienceSchema, type ExperienceComponent, type ExperienceSpec } from "../schemas/experience";
 import type { Decision, Trace } from "../schemas/trace";
 import {
   blockedComponents,
@@ -35,6 +35,8 @@ export type IntentResult =
   | {
       kind: "experience";
       experience: ExperienceSpec;
+      /** The composed layout, present only when the data was blocked and the experience shown is a blocked view. */
+      base?: ExperienceSpec;
       envelope: Envelope;
       calls: PlannedCall[];
       trace: Trace;
@@ -245,7 +247,8 @@ export async function runIntent(options: IntentOptions): Promise<IntentResult> {
     );
     if (!blocked.ok) return { kind: "error", message: FRIENDLY_FAILURE };
     trace.experience = treeOf(blocked.spec);
-    return { kind: "experience", experience: blocked.spec, envelope: execution.envelope, calls, trace };
+    const composed = candidateExperience(plan) === undefined ? undefined : ExperienceSchema.safeParse(candidateExperience(plan));
+    return { kind: "experience", experience: blocked.spec, ...(composed?.success ? { base: composed.data } : {}), envelope: execution.envelope, calls, trace };
   }
 
   if (result.errors.length > 0) {

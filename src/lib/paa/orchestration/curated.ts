@@ -2,10 +2,11 @@ import { monthLabel } from "../dates";
 import { DATA_START, REFERENCE_DATE } from "../data/seed";
 import { getOrganization } from "../organizations";
 import type { Envelope } from "../schemas/bindings";
-import type { ExperienceComponent, ExperienceSpec } from "../schemas/experience";
+import { ExperienceSchema, type ExperienceComponent, type ExperienceSpec } from "../schemas/experience";
 import type { Session } from "../schemas/capability";
 import type { Decision, Trace } from "../schemas/trace";
 import { blockedComponents, executePlan, scopeNotice, validateForOrganization, type PlannedCall } from "./execute";
+import { grovePrompts } from "./curated-grove";
 import { orbitPrompts } from "./curated-orbit";
 import { lastMonth, lastQuarter, lastYears, thisMonth } from "./windows";
 
@@ -279,7 +280,7 @@ export const curatedPrompts: CuratedPrompt[] = [
 ];
 
 // Each company's suggested requests live beside its own capabilities.
-curatedPrompts.push(...orbitPrompts);
+curatedPrompts.push(...orbitPrompts, ...grovePrompts);
 
 export function getCuratedPrompt(id: string): CuratedPrompt | undefined {
   return curatedPrompts.find((p) => p.id === id);
@@ -289,6 +290,8 @@ export class RunError extends Error {}
 
 export interface CuratedRun {
   experience: ExperienceSpec;
+  /** The composed layout, present only when the data was blocked and the experience shown is a blocked view. */
+  base?: ExperienceSpec;
   calls: PlannedCall[];
   envelope: Envelope;
   trace: Trace;
@@ -331,8 +334,19 @@ export async function runCurated(session: Session, promptId: string): Promise<Cu
   const validated = validateForOrganization(session.organizationId, candidate, envelope);
   if (!validated.ok) throw new RunError(`Composed experience failed validation: ${validated.errors.join("; ")}`);
 
+  // When the data was blocked, the visitor sees a blocked view, but the layout that was composed is kept so that
+  // switching to a profile that may see the data restores the real view instead of re-running the block.
+  const composed = failed
+    ? ExperienceSchema.safeParse({
+        version: "1",
+        title: prompt.title,
+        components: [{ type: "PageHeading", id: "heading", text: prompt.title, subtitle: prompt.subtitle() }, ...prompt.compose()],
+      })
+    : undefined;
+
   return {
     experience: validated.spec,
+    ...(composed?.success ? { base: composed.data } : {}),
     calls: calls.map(({ key, capabilityId, input }) => ({ key, capabilityId, input })),
     envelope,
     trace: {

@@ -64,9 +64,10 @@ export function applyScope(
   prior: PolicyCheck[],
 ): ScopeDecision {
   const field = capability.scopeField;
-  if (!field || context.scope.factoryIds === "all") return { allowed: true, input, checks: prior };
+  const allowed = field === "department" ? (context.scope.departments ?? "all") : field ? context.scope.factoryIds : "all";
+  if (!field || allowed === "all") return { allowed: true, input, checks: prior };
 
-  const allowedIds = context.scope.factoryIds;
+  const allowedIds = allowed;
   const requested = input[field];
 
   if (typeof requested === "string" && !allowedIds.includes(requested)) {

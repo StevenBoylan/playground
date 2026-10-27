@@ -1,7 +1,9 @@
+import { DEPARTMENTS, LOCATIONS, getGroveDataset } from "./data/grove-seed";
 import { FEATURES, PLANS, SEGMENTS, getOrbitDataset } from "./data/orbit-seed";
 import { DATA_START, DATA_YEARS, DOWNTIME_CAUSES, REFERENCE_DATE, getNorthstarDataset } from "./data/seed";
 import { getOrganization } from "./organizations";
-import { NORTHSTAR_PERMISSIONS, ORBIT_PERMISSIONS, type RoleDefinition } from "./policies/roles";
+import { MIN_COHORT } from "./policies/disclosure";
+import { GROVE_PERMISSIONS, NORTHSTAR_PERMISSIONS, ORBIT_PERMISSIONS, type RoleDefinition } from "./policies/roles";
 
 export interface AboutRole {
   id: string;
@@ -62,6 +64,17 @@ const ORBIT_LABELS: Labels = [
   [ORBIT_PERMISSIONS.exportPdf, "Create PDF reports"],
   [ORBIT_PERMISSIONS.exportPptx, "Create slide decks"],
   [ORBIT_PERMISSIONS.draftEmail, "Draft emails (simulated)"],
+];
+
+const GROVE_LABELS: Labels = [
+  [GROVE_PERMISSIONS.headcount, "View headcount and attrition"],
+  [GROVE_PERMISSIONS.hiring, "View the hiring funnel"],
+  [GROVE_PERMISSIONS.training, "View training completion"],
+  [GROVE_PERMISSIONS.leave, "View leave (aggregates)"],
+  [GROVE_PERMISSIONS.engagement, "View engagement survey results"],
+  [GROVE_PERMISSIONS.exportPdf, "Create PDF reports"],
+  [GROVE_PERMISSIONS.exportPptx, "Create slide decks"],
+  [GROVE_PERMISSIONS.draftEmail, "Draft emails (simulated)"],
 ];
 
 function describeRole(role: RoleDefinition, labels: Labels, scope: string, extraCannot: string[], notes: string[]): AboutRole {
@@ -158,9 +171,53 @@ function orbitAbout(): AboutInfo {
   };
 }
 
+function groveAbout(): AboutInfo {
+  const org = getOrganization("grove")!;
+  const ds = getGroveDataset();
+  const lastMonth = REFERENCE_DATE.slice(0, 7);
+  const today = ds.headcount.filter((r) => r.month === lastMonth).reduce((a, r) => a + r.headcount, 0);
+  return {
+    overview: `${org.name} is the people-operations team of a fictional company. It reports on headcount, hiring, training, leave and engagement, as aggregates only. Everything you see is synthetic, and the data store holds no individual employee records at all.`,
+    facts: [
+      { label: "People", value: `About ${Math.round(today / 10) * 10} employees today` },
+      { label: "Departments", value: DEPARTMENTS.map((d) => d.name).join(", ") },
+      { label: "Locations", value: LOCATIONS.map((l) => l.name).join(", ") },
+      { label: "Privacy rule", value: `No figure describes fewer than ${MIN_COHORT} people. Small groups are combined into “Other”.` },
+    ],
+    data: {
+      range: dataRange(),
+      granularities: ["Monthly", "Quarterly"],
+      datasets: [
+        { name: "Headcount", detail: "Headcount, hires and leavers each month, by department, level and location" },
+        { name: "Hiring", detail: "Candidates at each stage of the funnel, and the time to hire" },
+        { name: "Training", detail: "Completion of four mandatory courses, at the end of each quarter" },
+        { name: "Leave", detail: "Days of annual, sick, parental and other leave, as aggregates" },
+        { name: "Engagement", detail: "Quarterly survey scores and response rates, by department and theme" },
+      ],
+    },
+    skills: [
+      { name: "Headcount and attrition", detail: "How teams grew or shrank, and how many people left" },
+      { name: "Hiring analysis", detail: "Where candidates drop out of the funnel, and how long hiring takes" },
+      { name: "Training and compliance", detail: "Who is behind on mandatory courses" },
+      { name: "Leave and engagement", detail: "Patterns in leave, and what drives engagement" },
+      { name: "Charts and tables", detail: "Bar, line and donut charts, KPI cards, comparisons and filters, chosen to fit your question" },
+      { name: "Create a PDF, slide deck or email", detail: "Branded documents from any view. Email is a simulated draft and nothing is sent" },
+    ],
+    roles: org.roles.map((r) => {
+      const scoped = r.scope.departments !== undefined && r.scope.departments !== "all";
+      const notes = [
+        `Groups with fewer than ${MIN_COHORT} people are combined into “Other”, so nobody can be singled out, and the total stays correct.`,
+      ];
+      if (scoped) notes.push("A request for another department is blocked, and an unspecific one is narrowed to this department.");
+      return describeRole(r, GROVE_LABELS, r.scopeLabel ?? "All departments", ["See individual employee records (no profile can)"], notes);
+    }),
+  };
+}
+
 /** A plain-language description of a company, generated from the data and policy configuration it runs on. */
 export function aboutFor(organizationId: string): AboutInfo | null {
   if (organizationId === "northstar") return northstarAbout();
   if (organizationId === "orbit") return orbitAbout();
+  if (organizationId === "grove") return groveAbout();
   return null;
 }
