@@ -181,7 +181,7 @@ describe("document actions are governed by role", () => {
     expect(Buffer.from(pdf.deliverable!.file!.base64, "base64").slice(0, 4).toString()).toBe("%PDF");
     const email = await runAction(director, await realDocument("email"));
     expect(email.deliverable?.file).toBeUndefined();
-    expect(email.record.resultSummary).toContain("nothing was sent");
+    expect(email.record.resultSummary).toContain("draft shown on screen");
   });
 
   it("lets a line supervisor export PDFs but blocks decks and email before generating anything", async () => {

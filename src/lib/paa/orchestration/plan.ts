@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DOC_KINDS } from "../documents/types";
+import { DOC_KINDS, MAX_DELIVERABLES } from "../documents/types";
 import { FORMATS } from "../format";
 import { FILTER_PARAMS, type ExperienceSpec } from "../schemas/experience";
 import type { PlannedCall } from "./execute";
@@ -134,17 +134,25 @@ export const ModelPlanSchema = z.strictObject({
     }),
   ),
   experience: z.strictObject({ title: z.string(), components: z.array(modelComponent) }).optional(),
-  /** A document to produce: a PDF or slide deck file, or a simulated email draft. Validated strictly downstream. */
-  deliverable: z
-    .strictObject({
-      kind: z.enum(DOC_KINDS),
-      title: z.string(),
-      subtitle: z.string().optional(),
-      /** Email only: display names such as "Leadership team". Nothing is ever sent. */
-      to: z.array(z.string()).optional(),
-      subject: z.string().optional(),
-      blocks: z.array(deliverableBlock),
-    })
+  /**
+   * Documents to produce, in order: PDF and slide deck files and email drafts. An email that follows a file
+   * carries it as an attachment. Validated strictly downstream.
+   */
+  deliverables: z
+    .array(
+      z.strictObject({
+        kind: z.enum(DOC_KINDS),
+        title: z.string(),
+        subtitle: z.string().optional(),
+        /** Email only: display names such as "Leadership team". */
+        to: z.array(z.string()).optional(),
+        subject: z.string().optional(),
+        /** Set only when the visitor said whether the document should carry the company's branding. */
+        branded: z.boolean().optional(),
+        blocks: z.array(deliverableBlock),
+      }),
+    )
+    .max(MAX_DELIVERABLES)
     .optional(),
 });
 

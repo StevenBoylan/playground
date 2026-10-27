@@ -17,6 +17,33 @@ export function actionCapability(organizationId: string, kind: DocKind) {
   };
 }
 
+/** The branding skill is a capability too, so applying a company's look is authorized and recorded like any action. */
+export function brandingCapability(organizationId: string) {
+  return {
+    id: `${organizationId}.action.apply_branding`,
+    organizationId,
+    requiredPermission: `${organizationId}.action.branding`,
+  };
+}
+
+export interface BrandingDecision {
+  /** Whether the documents in this request carry the company's branding. */
+  branded: boolean;
+  /** Present when branding was asked for: what the policy layer decided. */
+  record?: ExecutionRecord;
+}
+
+/** Authorizes the branding skill. A role without it still gets its documents, just plain. */
+export function applyBranding(session: Session, wanted: boolean): BrandingDecision {
+  if (!wanted) return { branded: false };
+  const started = performance.now();
+  const capability = brandingCapability(session.organizationId);
+  const access = authorizeAccess(session, capability);
+  const base = { capabilityId: capability.id, params: { branded: true }, policyChecks: access.checks, durationMs: Math.round(performance.now() - started), warnings: [] };
+  if (!access.allowed) return { branded: false, record: { ...base, status: "denied", error: access.checks.at(-1)?.detail ?? "Denied" } };
+  return { branded: true, record: { ...base, status: "ok", resultSummary: "company name, colour and footer applied" } };
+}
+
 export interface ActionOutcome {
   record: ExecutionRecord;
   deliverable?: Deliverable;
@@ -24,7 +51,7 @@ export interface ActionOutcome {
 
 /**
  * Runs a document action: authorize first, generate only if allowed, and record what happened.
- * Email is simulated. It produces an on-screen draft and never sends anything.
+ * Email produces an on-screen draft.
  */
 export async function runAction(session: Session, document: ResolvedDocument): Promise<ActionOutcome> {
   const started = performance.now();
@@ -45,7 +72,7 @@ export async function runAction(session: Session, document: ResolvedDocument): P
   try {
     if (document.kind === "email") {
       return {
-        record: done({ status: "ok", resultSummary: "draft shown on screen; nothing was sent" }),
+        record: done({ status: "ok", resultSummary: "draft shown on screen" }),
         deliverable: { kind: "email", document },
       };
     }

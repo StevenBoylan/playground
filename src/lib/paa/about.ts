@@ -53,6 +53,7 @@ const NORTHSTAR_LABELS: Labels = [
   [NORTHSTAR_PERMISSIONS.exportPdf, "Create PDF reports"],
   [NORTHSTAR_PERMISSIONS.exportPptx, "Create slide decks"],
   [NORTHSTAR_PERMISSIONS.draftEmail, "Draft emails"],
+  [NORTHSTAR_PERMISSIONS.applyBranding, "Apply company branding"],
 ];
 
 const ORBIT_LABELS: Labels = [
@@ -64,6 +65,7 @@ const ORBIT_LABELS: Labels = [
   [ORBIT_PERMISSIONS.exportPdf, "Create PDF reports"],
   [ORBIT_PERMISSIONS.exportPptx, "Create slide decks"],
   [ORBIT_PERMISSIONS.draftEmail, "Draft emails"],
+  [ORBIT_PERMISSIONS.applyBranding, "Apply company branding"],
 ];
 
 const GROVE_LABELS: Labels = [
@@ -75,6 +77,7 @@ const GROVE_LABELS: Labels = [
   [GROVE_PERMISSIONS.exportPdf, "Create PDF reports"],
   [GROVE_PERMISSIONS.exportPptx, "Create slide decks"],
   [GROVE_PERMISSIONS.draftEmail, "Draft emails"],
+  [GROVE_PERMISSIONS.applyBranding, "Apply company branding"],
 ];
 
 function describeRole(role: RoleDefinition, labels: Labels, scope: string, extraCannot: string[], notes: string[]): AboutRole {

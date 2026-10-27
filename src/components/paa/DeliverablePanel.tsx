@@ -102,6 +102,7 @@ function EmailPreview({ deliverable }: { deliverable: Deliverable }) {
   const [state, setState] = useState<"draft" | "sent" | "discarded">("draft");
   const email = doc.email;
   if (!email) return null;
+  const attachments = email.attachments ?? [];
 
   if (state !== "draft") {
     return (
@@ -140,6 +141,19 @@ function EmailPreview({ deliverable }: { deliverable: Deliverable }) {
         </dd>
         <dt className="text-neutral-500">Subject</dt>
         <dd className="font-medium">{email.subject}</dd>
+        {attachments.length > 0 && (
+          <>
+            <dt className="text-neutral-500">Attached</dt>
+            <dd className="flex flex-wrap gap-1.5">
+              {attachments.map((a) => (
+                <span key={a.filename} className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-2.5 py-1 text-xs font-medium">
+                  <FileIcon width={14} height={14} />
+                  {a.filename}
+                </span>
+              ))}
+            </dd>
+          </>
+        )}
       </dl>
       <div className="max-h-[34rem] overflow-y-auto px-5 py-4">
         <h2 className="text-lg font-semibold" style={{ color: doc.brand.accent }}>

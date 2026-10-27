@@ -25,6 +25,12 @@ async function helpAction(page: Page, name: RegExp) {
   await page.getByRole("button", { name }).click();
 }
 
+/** A PDF or deck asks "Do you want this ... branded?"; the answer is typed into the same control. */
+async function answerBranding(page: Page, answer: string) {
+  await expect(page.getByText(/Do you want this .* branded\?/)).toBeVisible();
+  await ask(page, answer);
+}
+
 async function open(page: Page, company: RegExp) {
   await page.goto("/paa");
   await page.getByRole("button", { name: company }).click();
@@ -111,6 +117,7 @@ test("a view can be taken further: PDF with download, slide deck preview and an 
 
   // PDF: a real file the visitor can download.
   await helpAction(page, /Create a PDF report/);
+  await answerBranding(page, "Yes, branded");
   const download = page.getByRole("link", { name: "Download" });
   await expect(download).toBeVisible();
   await expect(download).toHaveAttribute("download", "downtime-this-month-against-last-month.pdf");
@@ -118,6 +125,7 @@ test("a view can be taken further: PDF with download, slide deck preview and an 
 
   // Slides: a preview filmstrip of the real deck, plus a downloadable .pptx.
   await helpAction(page, /Create a slide deck/);
+  await answerBranding(page, "No, keep it plain");
   await expect(page.getByRole("list", { name: "Slide previews" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Download" })).toHaveAttribute("download", /\.pptx$/);
 
@@ -129,7 +137,6 @@ test("a view can be taken further: PDF with download, slide deck preview and an 
   await expect(email.getByRole("img").first()).toBeVisible();
   await email.getByRole("button", { name: "Send" }).click();
   await expect(page.getByText("Message sent")).toBeVisible();
-  await expect(page.getByText(/nothing was sent and no email service was contacted/)).toBeVisible();
 
   // The inspector records the action as an executed, authorized event.
   await page.getByRole("button", { name: /how PAA built this/ }).click();
@@ -143,10 +150,12 @@ test("actions are governed by profile: a supervisor can export a PDF but not a d
   await expect(page.getByText("Results are limited to the data this role is permitted to see.")).toBeVisible();
 
   await helpAction(page, /Create a slide deck/);
+  await answerBranding(page, "Yes, branded");
   await expect(page.getByText(/isn.t permitted to build slide decks/)).toBeVisible();
   await expect(page.getByRole("link", { name: "Download" })).toHaveCount(0);
 
   await helpAction(page, /Create a PDF report/);
+  await answerBranding(page, "Yes, branded");
   await expect(page.getByRole("link", { name: "Download" })).toBeVisible();
   await expect(page.getByText(/isn.t permitted/)).toHaveCount(0);
 });

@@ -22,9 +22,11 @@ Each company has four years of deterministic synthetic data with planted stories
 hiring freeze) so there is something real to discover.
 
 The interface is deliberately one control: say what you want. There is no dashboard to navigate. Anything you can
-see can also be turned into a branded **PDF**, a branded **PowerPoint** with native charts, or an **email
-draft**. Who you are is a profile menu; switching it re-runs what is on screen under that profile's
-permissions.
+see can also be turned into a **PDF**, a **PowerPoint** with native charts, or an **email
+draft**, and one request can make several: "make a PDF of this and email it to the Gdansk team" produces the PDF and
+an email with it attached. Before a PDF or deck is built the system asks "Do you want this PDF branded?", answered in
+the same field; branding is its own governed action (`<company>.action.branding`), recorded in the inspector. Who you
+are is a profile menu; switching it re-runs what is on screen under that profile's permissions.
 
 ## How it works
 

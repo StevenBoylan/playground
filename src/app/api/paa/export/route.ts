@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { runAction } from "@/lib/paa/actions/run";
+import { applyBranding, runAction } from "@/lib/paa/actions/run";
 import { documentFromExperience } from "@/lib/paa/documents/resolve";
 import { DOC_KINDS } from "@/lib/paa/documents/types";
 import { MAX_CALLS, executePlan, PlanError, validateForOrganization } from "@/lib/paa/orchestration/execute";
@@ -14,6 +14,8 @@ const Body = z.strictObject({
   organizationId: z.string().max(64),
   roleId: z.string().max(64),
   kind: z.enum(DOC_KINDS),
+  /** The visitor's answer to "do you want this branded?"; company branding by default. */
+  branded: z.boolean().optional(),
   experience: ExperienceSchema,
   calls: z
     .array(z.strictObject({ key: z.string().max(40), capabilityId: z.string().max(80), input: z.record(z.string(), z.unknown()) }))
@@ -22,7 +24,7 @@ const Body = z.strictObject({
 });
 
 /**
- * One-click export (no model): turns the view on screen into a PDF, a slide deck or a simulated email draft.
+ * One-click export (no model): turns the view on screen into a PDF, a slide deck or an email draft.
  * The plan is re-run under the caller's role, so the document can only contain data that role may see,
  * and the action itself is authorized separately before anything is generated.
  */
@@ -53,12 +55,14 @@ export async function POST(request: Request) {
     const valid = validateForOrganization(session.organizationId, body.data.experience, execution.envelope);
     if (!valid.ok) return Response.json({ executions: execution.executions, actionError: "This view can't be exported as it stands." });
 
-    const document = documentFromExperience(body.data.kind, valid.spec, execution.envelope, session.organizationId);
+    const branding = applyBranding(session, body.data.branded ?? true);
+    const document = documentFromExperience(body.data.kind, valid.spec, execution.envelope, session.organizationId, branding.branded);
     const action = await runAction(session, document);
+    const brandingDenied = branding.record?.status === "denied" ? "Your current role isn't permitted to apply company branding, so the document is plain." : undefined;
     return Response.json({
-      executions: [...execution.executions, action.record],
-      deliverable: action.deliverable,
-      actionError: action.record.status === "ok" ? undefined : actionFailureMessage(body.data.kind, action.record.status),
+      executions: [...execution.executions, ...(branding.record ? [branding.record] : []), action.record],
+      deliverables: action.deliverable ? [action.deliverable] : [],
+      actionError: action.record.status === "ok" ? brandingDenied : actionFailureMessage(body.data.kind, action.record.status),
     });
   } catch (error) {
     if (error instanceof PlanError) return Response.json({ error: "That request is not supported" }, { status: 400 });

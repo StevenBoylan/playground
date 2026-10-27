@@ -34,9 +34,11 @@ export const DeliverableSchema = z.strictObject({
   kind: z.enum(DOC_KINDS),
   title: label,
   subtitle: label.optional(),
-  /** Email only: display names or addresses shown in the simulated window. Nothing is ever sent. */
+  /** Email only: display names or addresses shown in the mail window. */
   to: z.array(z.string().min(1).max(80)).max(5).optional(),
   subject: label.optional(),
+  /** True or false only when the visitor said so; left out when they did not, which makes the system ask. */
+  branded: z.boolean().optional(),
   blocks: z
     .array(
       z.discriminatedUnion("type", [
@@ -182,6 +184,7 @@ export function resolveDeliverable(raw: unknown, envelope: Envelope, options: Re
               from: `${brand.shortName} Reporting <reports@${brand.emailDomain}>`,
               to: (spec.to?.length ? spec.to : ["Leadership team"]).map((t) => emailAddress(brand, t)),
               subject: spec.subject ?? spec.title,
+              attachments: [],
             },
           }
         : {}),
@@ -198,8 +201,9 @@ export function documentFromExperience(
   experience: ExperienceSpec,
   envelope: Envelope,
   organizationId: string,
+  branded = true,
 ): ResolvedDocument {
-  const brand = brandFor(organizationId);
+  const brand = brandFor(organizationId, branded);
   const blocks: DocBlock[] = [];
   let subtitle: string | undefined;
 
@@ -284,6 +288,7 @@ export function documentFromExperience(
       from: `${brand.shortName} Reporting <reports@${brand.emailDomain}>`,
       to: [`Leadership team <leadership@${brand.emailDomain}>`],
       subject: experience.title,
+      attachments: [],
     };
   }
   return doc;

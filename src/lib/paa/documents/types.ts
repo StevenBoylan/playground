@@ -3,6 +3,9 @@ import type { Format } from "../format";
 export const DOC_KINDS = ["pdf", "pptx", "email"] as const;
 export type DocKind = (typeof DOC_KINDS)[number];
 
+/** One request can produce several documents, for example a PDF and the email that carries it. */
+export const MAX_DELIVERABLES = 3;
+
 export interface Brand {
   name: string;
   shortName: string;
@@ -26,10 +29,11 @@ export interface ResolvedDocument {
   subtitle?: string;
   brand: Brand;
   blocks: DocBlock[];
-  email?: { from: string; to: string[]; subject: string };
+  /** Email only. Attachments are the files produced earlier in the same request. */
+  email?: { from: string; to: string[]; subject: string; attachments: { filename: string; kind: "pdf" | "pptx" }[] };
 }
 
-/** What a request for a deliverable produces: a file (pdf/pptx) or an on-screen simulated email. */
+/** What a request for a deliverable produces: a file (pdf/pptx) or an email draft. */
 export interface Deliverable {
   kind: DocKind;
   document: ResolvedDocument;

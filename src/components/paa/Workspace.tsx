@@ -96,6 +96,12 @@ async function api(url: string, body: unknown): Promise<Response> {
 
 const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
 
+/** The branding question is waiting for an answer typed into the one control. */
+type Awaiting = { request: string } | { exportKind: DocKind };
+const YES = /^\s*(y|yes|yep|yeah|sure|ok|okay|please|branded|with (our |the )?branding|do it)\b/i;
+const NO = /^\s*(n|no|nope|nah|plain|unbranded|without|not branded|no branding)\b/i;
+const BRANDING_ANSWERS = ["Yes, branded", "No, keep it plain"];
+
 /** Applies filter overrides to a plan; an empty value removes the input. */
 function withFilters(calls: PlannedCall[], values: Record<string, string>): PlannedCall[] {
   return calls.map((c) => {
@@ -182,7 +188,8 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showTrace, setShowTrace] = useState(false);
-  const [deliverable, setDeliverable] = useState<Deliverable | null>(null);
+  const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
+  const [awaiting, setAwaiting] = useState<Awaiting | null>(null);
   const [acting, setActing] = useState<DocKind | null>(null);
   const [actionNote, setActionNote] = useState<string | null>(null);
   const [aiAvailable, setAiAvailable] = useState(true);
@@ -206,7 +213,8 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
     setError(null);
     setBusy(false);
     setShowTrace(false);
-    setDeliverable(null);
+    setDeliverables([]);
+    setAwaiting(null);
     setActing(null);
     setActionNote(null);
   }
@@ -225,12 +233,30 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
     const body = await res.json();
     if (!res.ok) throw new Error(body.error ?? "Request failed");
     adopt(body as View, request);
-    setDeliverable(null);
+    setDeliverables([]);
     setActionNote(null);
   }
 
-  async function ask(request: string) {
-    if (!org || !request.trim() || busy) return;
+  async function ask(raw: string) {
+    if (!org || !raw.trim() || busy) return;
+    let request = raw;
+    if (awaiting) {
+      // The branding question is answered here, in the same control: a yes or no is applied without another model call.
+      const pending = awaiting;
+      setAwaiting(null);
+      if ("exportKind" in pending) {
+        const answer = YES.test(raw) ? true : NO.test(raw) ? false : undefined;
+        if (answer !== undefined) {
+          setText("");
+          setMessage(null);
+          await exportDoc(pending.exportKind, answer);
+          return;
+        }
+      } else {
+        const answer = YES.test(raw) ? "Branded." : NO.test(raw) ? "Unbranded: plain, no company branding." : raw;
+        request = `${pending.request} ${answer}`.slice(0, 500);
+      }
+    }
     // Typing one of the example requests exactly still works without a model, through the curated path.
     const promptId = org.prompts.find((p) => normalize(p.text) === normalize(request))?.id;
     const seq = ++requestSeq.current;
@@ -287,15 +313,16 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
 
       if (result.kind === "experience") {
         adopt(result, request);
-        setDeliverable(result.deliverable ?? null);
+        setDeliverables(result.deliverables ?? []);
         setActionNote(result.actionError ?? null);
       } else if (result.kind === "deliverable") {
         setLastRequest(request);
-        setDeliverable(result.deliverable ?? null);
+        setDeliverables(result.deliverables ?? []);
         setActionNote(result.actionError ?? null);
       } else if (result.kind === "message") {
         setLastRequest(request);
         setMessage(result.message);
+        setAwaiting(result.expects === "branding" ? { request } : null);
       } else {
         throw new Error(result.message);
       }
@@ -310,27 +337,40 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
   }
 
   /** One-click documents (no model): the plan is re-run under the current role, then the action is authorized. */
-  async function exportDoc(kind: DocKind) {
+  async function exportDoc(kind: DocKind, branded = true) {
     if (!org || !view || busy || acting) return;
     setActing(kind);
     setError(null);
     setActionNote(null);
     try {
-      const res = await api("/api/paa/export", { organizationId: org.id, roleId, kind, experience: view.base, calls: withFilters(view.calls, filters) });
+      const res = await api("/api/paa/export", { organizationId: org.id, roleId, kind, branded, experience: view.base, calls: withFilters(view.calls, filters) });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? "Request failed");
-      const made = (body.deliverable ?? null) as Deliverable | null;
-      setDeliverable(made);
+      const made = (body.deliverables ?? []) as Deliverable[];
+      setDeliverables(made);
       setActionNote(body.actionError ?? null);
       const executions = body.executions as ExecutionRecord[];
       setView((v) =>
-        v ? { ...v, trace: { ...v.trace, executions, deliverable: made ? { kind, title: made.document.title, blockCount: made.document.blocks.length } : undefined } } : v,
+        v ? { ...v, trace: { ...v.trace, executions, deliverables: made.map((d) => ({ kind: d.kind, title: d.document.title, blockCount: d.document.blocks.length })) } } : v,
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Request failed");
     } finally {
       setActing(null);
     }
+  }
+
+  /** A PDF or deck from the Help panel asks the branding question first; an email goes straight ahead. */
+  function startExport(kind: DocKind) {
+    if (kind === "email") {
+      void exportDoc(kind);
+      return;
+    }
+    setError(null);
+    setActionNote(null);
+    setDeliverables([]);
+    setMessage(`Do you want this ${kind === "pdf" ? "PDF" : "slide deck"} branded?`);
+    setAwaiting({ exportKind: kind });
   }
 
   /** Re-runs the current plan without the model: used for filter changes and profile switches. */
@@ -340,7 +380,7 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
     setBusy(true);
     setError(null);
     try {
-      setDeliverable(null);
+      setDeliverables([]);
       setActionNote(null);
       const res = await api("/api/paa/rerun", { organizationId: org.id, roleId: role, experience: view.base, calls: withFilters(view.calls, nextFilters) });
       const body = await res.json();
@@ -411,8 +451,8 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
 
   // --- Canvas -------------------------------------------------------------
 
-  const empty = !view && !deliverable && !busy && !message && !actionNote;
-  const suggestions = view ? FOLLOW_UP_HINTS : org.prompts.map((p) => p.text);
+  const empty = !view && deliverables.length === 0 && !busy && !message && !actionNote;
+  const suggestions = awaiting ? BRANDING_ANSWERS : view ? FOLLOW_UP_HINTS : org.prompts.map((p) => p.text);
 
   return (
     <div style={{ ["--accent" as string]: org.accent }}>
@@ -443,6 +483,7 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
             onSelect={(id) => {
               setRoleId(id);
               setMessage(null);
+              setAwaiting(null);
               void rerun(filters, id);
             }}
           />
@@ -454,7 +495,7 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
             acting={acting}
             aiAvailable={aiAvailable}
             ideas={org.ideas}
-            onAction={(kind) => void exportDoc(kind)}
+            onAction={startExport}
             onAsk={(idea) => void ask(idea)}
           />
         </div>
@@ -505,7 +546,13 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
             {actionNote}
           </p>
         )}
-        {deliverable && <DeliverablePanel deliverable={deliverable} onClose={() => setDeliverable(null)} />}
+        {deliverables.map((d, i) => (
+          <DeliverablePanel
+            key={`${d.kind}-${i}`}
+            deliverable={d}
+            onClose={() => setDeliverables((list) => list.filter((_, j) => j !== i))}
+          />
+        ))}
 
         {busy && !view && <Skeleton />}
 

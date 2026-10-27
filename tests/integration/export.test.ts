@@ -19,10 +19,11 @@ describe("/api/paa/export", () => {
     const res = await exportRoute(post({ organizationId: "northstar", roleId: "operations_director", kind: "pdf", ...(await plan()) }));
     const body = await res.json();
     expect(res.status).toBe(200);
-    expect(body.deliverable.file.filename).toBe("downtime-this-month-against-last-month.pdf");
-    expect(Buffer.from(body.deliverable.file.base64, "base64").subarray(0, 4).toString()).toBe("%PDF");
+    expect(body.deliverables[0].file.filename).toBe("downtime-this-month-against-last-month.pdf");
+    expect(Buffer.from(body.deliverables[0].file.base64, "base64").subarray(0, 4).toString()).toBe("%PDF");
     expect(body.executions.map((e: { capabilityId: string }) => e.capabilityId)).toEqual([
       "northstar.downtime_breakdown",
+      "northstar.action.apply_branding",
       "northstar.action.export_pdf",
     ]);
   });
@@ -32,7 +33,7 @@ describe("/api/paa/export", () => {
       const res = await exportRoute(post({ organizationId: "northstar", roleId: "line_supervisor", kind, ...(await plan()) }));
       const body = await res.json();
       expect(res.status).toBe(200);
-      expect(body.deliverable).toBeUndefined();
+      expect(body.deliverables ?? []).toEqual([]);
       expect(body.actionError).toContain("isn't permitted");
       expect(body.executions.at(-1).status).toBe("denied");
     }
@@ -43,7 +44,7 @@ describe("/api/paa/export", () => {
       post({ organizationId: "northstar", roleId: "line_supervisor", kind: "pdf", ...(await plan("production-by-factory")) }),
     );
     const body = await res.json();
-    const table = body.deliverable.document.blocks.find((b: { type: string }) => b.type === "table");
+    const table = body.deliverables[0].document.blocks.find((b: { type: string }) => b.type === "table");
     expect(table.rows.map((r: string[]) => r[0])).toEqual(["Dublin Plant"]);
   });
 
@@ -54,7 +55,7 @@ describe("/api/paa/export", () => {
       post({ organizationId: "northstar", roleId: "line_supervisor", kind: "pdf", experience: base.experience, calls }),
     );
     const body = await res.json();
-    expect(body.deliverable).toBeUndefined();
+    expect(body.deliverables ?? []).toEqual([]);
     expect(body.actionError).toContain("not available to your role");
   });
 

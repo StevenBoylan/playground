@@ -19,6 +19,8 @@ export const NORTHSTAR_PERMISSIONS = {
   exportPdf: "northstar.action.pdf",
   exportPptx: "northstar.action.pptx",
   draftEmail: "northstar.action.email",
+  /** The branding skill: applies the company's name, colour and footer to a document. */
+  applyBranding: "northstar.action.branding",
 } as const;
 
 export const northstarRoles: RoleDefinition[] = [
@@ -38,6 +40,7 @@ export const northstarRoles: RoleDefinition[] = [
       NORTHSTAR_PERMISSIONS.defects,
       NORTHSTAR_PERMISSIONS.downtime,
       NORTHSTAR_PERMISSIONS.exportPdf,
+      NORTHSTAR_PERMISSIONS.applyBranding,
     ],
     scope: { factoryIds: ["dublin"] },
   },
@@ -56,6 +59,7 @@ export const ORBIT_PERMISSIONS = {
   exportPdf: "orbit.action.pdf",
   exportPptx: "orbit.action.pptx",
   draftEmail: "orbit.action.email",
+  applyBranding: "orbit.action.branding",
 } as const;
 
 export const orbitRoles: RoleDefinition[] = [
@@ -78,6 +82,7 @@ export const orbitRoles: RoleDefinition[] = [
       ORBIT_PERMISSIONS.accounts,
       ORBIT_PERMISSIONS.exportPdf,
       ORBIT_PERMISSIONS.draftEmail,
+      ORBIT_PERMISSIONS.applyBranding,
     ],
     scope: { factoryIds: "all" },
     scopeLabel: "Operations data and named customers, with revenue hidden",
@@ -86,7 +91,7 @@ export const orbitRoles: RoleDefinition[] = [
     id: "junior_developer",
     label: "Junior Software Developer",
     description: "Product usage and support tickets only. No revenue, no churn, no customer accounts. Can produce PDFs.",
-    permissions: [ORBIT_PERMISSIONS.usage, ORBIT_PERMISSIONS.support, ORBIT_PERMISSIONS.exportPdf],
+    permissions: [ORBIT_PERMISSIONS.usage, ORBIT_PERMISSIONS.support, ORBIT_PERMISSIONS.exportPdf, ORBIT_PERMISSIONS.applyBranding],
     scope: { factoryIds: "all" },
     scopeLabel: "Product usage and support only",
   },
@@ -105,6 +110,7 @@ export const GROVE_PERMISSIONS = {
   exportPdf: "grove.action.pdf",
   exportPptx: "grove.action.pptx",
   draftEmail: "grove.action.email",
+  applyBranding: "grove.action.branding",
 } as const;
 
 export const groveRoles: RoleDefinition[] = [
@@ -120,6 +126,7 @@ export const groveRoles: RoleDefinition[] = [
       GROVE_PERMISSIONS.engagement,
       GROVE_PERMISSIONS.exportPdf,
       GROVE_PERMISSIONS.draftEmail,
+      GROVE_PERMISSIONS.applyBranding,
     ],
     scope: { factoryIds: "all", departments: "all" },
     scopeLabel: "All departments, including leave and engagement",
@@ -136,6 +143,7 @@ export const groveRoles: RoleDefinition[] = [
       GROVE_PERMISSIONS.exportPdf,
       GROVE_PERMISSIONS.exportPptx,
       GROVE_PERMISSIONS.draftEmail,
+      GROVE_PERMISSIONS.applyBranding,
     ],
     scope: { factoryIds: "all", departments: "all" },
     scopeLabel: "All departments, without leave data",
@@ -144,7 +152,7 @@ export const groveRoles: RoleDefinition[] = [
     id: "hiring_manager",
     label: "Hiring Manager (Engineering)",
     description: "Headcount, hiring and training for the Engineering department only. No leave or engagement data. Can produce PDFs.",
-    permissions: [GROVE_PERMISSIONS.headcount, GROVE_PERMISSIONS.hiring, GROVE_PERMISSIONS.training, GROVE_PERMISSIONS.exportPdf],
+    permissions: [GROVE_PERMISSIONS.headcount, GROVE_PERMISSIONS.hiring, GROVE_PERMISSIONS.training, GROVE_PERMISSIONS.exportPdf, GROVE_PERMISSIONS.applyBranding],
     scope: { factoryIds: "all", departments: ["engineering"] },
     scopeLabel: "Engineering only",
   },
