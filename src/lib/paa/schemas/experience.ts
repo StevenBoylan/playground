@@ -12,6 +12,11 @@ const text = z.string().min(1).max(600);
 const field = z.string().regex(/^[A-Za-z][A-Za-z0-9_]{0,63}$/);
 const format = z.enum(FORMATS);
 
+/** Inputs a FilterBar may change when it re-runs a service. Everything else is fixed by the plan. */
+export const FILTER_PARAMS = ["factoryId", "granularity"] as const;
+export const CALL_KEY_PATTERN = /^[a-z][A-Za-z0-9]{0,31}$/;
+const callKey = z.string().regex(CALL_KEY_PATTERN);
+
 const column = z.strictObject({ field, label, format: format.optional() });
 
 const component = z.discriminatedUnion("type", [
@@ -51,6 +56,34 @@ const component = z.discriminatedUnion("type", [
     title: label,
     dataRef: ref,
     columns: z.array(column).min(1).max(12),
+  }),
+  z.strictObject({
+    type: z.literal("Comparison"),
+    id,
+    title: label,
+    currentLabel: label,
+    previousLabel: label,
+    currentRef: ref,
+    previousRef: ref,
+    format,
+    /** Whether an increase is good, bad or neutral, which sets the colour of the change. */
+    higherIs: z.enum(["good", "bad", "neutral"]),
+  }),
+  z.strictObject({
+    type: z.literal("FilterBar"),
+    id,
+    filters: z
+      .array(
+        z.strictObject({
+          param: z.enum(FILTER_PARAMS),
+          label,
+          /** Key of the planned service call this filter re-runs. */
+          callKey: callKey,
+          options: z.array(z.strictObject({ value: z.string().max(40), label })).min(2).max(8),
+        }),
+      )
+      .min(1)
+      .max(3),
   }),
   z.strictObject({ type: z.literal("Notice"), id, level: z.enum(["info", "warning"]), text }),
   z.strictObject({ type: z.literal("EmptyState"), id, title: label, text }),
@@ -145,6 +178,15 @@ export function validateExperience(raw: unknown, envelope: Envelope): Validation
       case "LineChart":
       case "BarChart":
         checkRows(c.id, c.dataRef, [{ name: c.xField }, { name: c.yField, numeric: true }], envelope, errors);
+        break;
+      case "Comparison":
+        for (const r of [c.currentRef, c.previousRef]) {
+          if (!isValidRefSyntax(r) || typeof resolveRef(envelope, r) !== "number") {
+            errors.push(`${c.id}: "${r}" does not resolve to a number`);
+          }
+        }
+        break;
+      case "FilterBar":
         break;
       case "DonutChart":
         checkRows(c.id, c.dataRef, [{ name: c.nameField }, { name: c.valueField, numeric: true }], envelope, errors);

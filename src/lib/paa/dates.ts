@@ -51,3 +51,14 @@ export function previousMonth(date: string): DateRange {
   const last = addDays(startOfMonth(date), -1);
   return { from: startOfMonth(last), to: last };
 }
+
+/** Monday of the week containing the date. */
+export function weekStart(date: string): string {
+  const dow = dayOfWeek(date);
+  return addDays(date, -((dow + 6) % 7));
+}
+
+export function weekLabel(start: string): string {
+  const d = parseDate(start);
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
+}

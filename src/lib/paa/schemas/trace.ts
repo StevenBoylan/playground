@@ -34,4 +34,6 @@ export interface Trace {
   decisions: Decision[];
   executions: ExecutionRecord[];
   experience: { componentCount: number; tree: { id: string; type: string; dataRef?: string }[] };
+  /** Present for model-composed views: whether validation forced a repair round and what it objected to. */
+  validation?: { repaired: boolean; firstErrors: string[] };
 }

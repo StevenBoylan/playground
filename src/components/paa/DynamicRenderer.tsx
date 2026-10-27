@@ -4,9 +4,11 @@ import type { Envelope } from "@/lib/paa/schemas/bindings";
 import type { ExperienceComponent, ExperienceSpec } from "@/lib/paa/schemas/experience";
 import {
   BarChartView,
+  Comparison,
   DataTable,
   DonutChartView,
   EmptyState,
+  FilterBar,
   KpiCard,
   LineChartView,
   Narrative,
@@ -14,7 +16,12 @@ import {
   PageHeading,
 } from "./ui-registry";
 
-function View({ component, envelope }: { component: ExperienceComponent; envelope: Envelope }) {
+export interface FilterState {
+  values: Record<string, string>;
+  onChange?: (callKey: string, param: string, value: string) => void;
+}
+
+function View({ component, envelope, filters }: { component: ExperienceComponent; envelope: Envelope; filters: FilterState }) {
   switch (component.type) {
     case "PageHeading":
       return <PageHeading component={component} envelope={envelope} />;
@@ -22,6 +29,8 @@ function View({ component, envelope }: { component: ExperienceComponent; envelop
       return <Narrative component={component} envelope={envelope} />;
     case "KpiCard":
       return <KpiCard component={component} envelope={envelope} />;
+    case "Comparison":
+      return <Comparison component={component} envelope={envelope} />;
     case "LineChart":
       return <LineChartView component={component} envelope={envelope} />;
     case "BarChart":
@@ -30,6 +39,8 @@ function View({ component, envelope }: { component: ExperienceComponent; envelop
       return <DonutChartView component={component} envelope={envelope} />;
     case "DataTable":
       return <DataTable component={component} envelope={envelope} />;
+    case "FilterBar":
+      return <FilterBar component={component} values={filters.values} onChange={filters.onChange} />;
     case "Notice":
       return <Notice component={component} envelope={envelope} />;
     case "EmptyState":
@@ -41,26 +52,34 @@ function View({ component, envelope }: { component: ExperienceComponent; envelop
  * Renders an already-validated UI specification. Only allowlisted components exist,
  * and all values are resolved from the server-approved envelope.
  */
-export function DynamicRenderer({ experience, envelope }: { experience: ExperienceSpec; envelope: Envelope }) {
-  // KPI cards sit side by side; everything else stacks.
+export function DynamicRenderer({
+  experience,
+  envelope,
+  filters = { values: {} },
+}: {
+  experience: ExperienceSpec;
+  envelope: Envelope;
+  filters?: FilterState;
+}) {
+  // Consecutive KPI cards and comparisons sit side by side; everything else stacks.
   const out: React.ReactNode[] = [];
-  let kpis: ExperienceComponent[] = [];
+  let group: ExperienceComponent[] = [];
   const flush = () => {
-    if (kpis.length === 0) return;
+    if (group.length === 0) return;
     out.push(
-      <div key={`kpis-${kpis[0].id}`} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {kpis.map((c) => (
-          <View key={c.id} component={c} envelope={envelope} />
+      <div key={`group-${group[0].id}`} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {group.map((c) => (
+          <View key={c.id} component={c} envelope={envelope} filters={filters} />
         ))}
       </div>,
     );
-    kpis = [];
+    group = [];
   };
   for (const c of experience.components) {
-    if (c.type === "KpiCard") kpis.push(c);
+    if (c.type === "KpiCard" || c.type === "Comparison") group.push(c);
     else {
       flush();
-      out.push(<View key={c.id} component={c} envelope={envelope} />);
+      out.push(<View key={c.id} component={c} envelope={envelope} filters={filters} />);
     }
   }
   flush();

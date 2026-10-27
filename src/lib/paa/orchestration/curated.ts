@@ -1,17 +1,14 @@
-import { executeCapability } from "../capabilities/registry";
 import { monthLabel } from "../dates";
 import { REFERENCE_DATE } from "../data/seed";
 import { getOrganization } from "../organizations";
 import type { Envelope } from "../schemas/bindings";
 import { validateExperience, type ExperienceComponent, type ExperienceSpec } from "../schemas/experience";
 import type { Session } from "../schemas/capability";
-import type { Decision, ExecutionRecord, Trace } from "../schemas/trace";
+import type { Decision, Trace } from "../schemas/trace";
+import { blockedComponents, executePlan, scopeNotice, type PlannedCall } from "./execute";
 import { lastMonth, lastQuarter, thisMonth } from "./windows";
 
-interface PlannedCall {
-  key: string;
-  capabilityId: string;
-  input: Record<string, unknown>;
+interface CuratedCall extends PlannedCall {
   rationale: string;
 }
 
@@ -22,7 +19,7 @@ interface CuratedPrompt {
   title: string;
   assumptions: string[];
   subtitle(): string;
-  plan(): PlannedCall[];
+  plan(): CuratedCall[];
   compose(): ExperienceComponent[];
 }
 
@@ -162,6 +159,60 @@ export const curatedPrompts: CuratedPrompt[] = [
       },
     ],
   },
+  {
+    id: "defect-trend",
+    organizationId: "northstar",
+    text: "How has the defect rate changed since July?",
+    title: "Defect rate over time",
+    assumptions: ['"Since July" runs from the first of July to the dataset reference date.'],
+    subtitle: () => `${monthLabel("2026-07")} to ${monthLabel(REFERENCE_DATE.slice(0, 7))}`,
+    plan: () => [
+      {
+        key: "trend",
+        capabilityId: "northstar.defect_trend",
+        input: { dateFrom: "2026-07-01", dateTo: REFERENCE_DATE, granularity: "month" },
+        rationale: "Defect rate per period over the window, with a first-versus-last comparison.",
+      },
+    ],
+    compose: () => [
+      {
+        type: "Narrative",
+        id: "summary",
+        template:
+          "The defect rate moved from {{results.trend.summary.firstPeriodRate|percent}} in the first period to {{results.trend.summary.lastPeriodRate|percent}} in the last, against {{results.trend.summary.overallDefectRate|percent}} overall.",
+      },
+      {
+        type: "FilterBar",
+        id: "filters",
+        filters: [
+          { param: "granularity", label: "Group by", callKey: "trend", options: [{ value: "month", label: "Month" }, { value: "week", label: "Week" }] },
+          {
+            param: "factoryId",
+            label: "Factory",
+            callKey: "trend",
+            options: [
+              { value: "", label: "All factories" },
+              { value: "dublin", label: "Dublin Plant" },
+              { value: "gdansk", label: "Gdansk Plant" },
+              { value: "monterrey", label: "Monterrey Plant" },
+            ],
+          },
+        ],
+      },
+      {
+        type: "Comparison",
+        id: "first-vs-last",
+        title: "First period against last period",
+        currentLabel: "Last period",
+        previousLabel: "First period",
+        currentRef: "results.trend.summary.lastPeriodRate",
+        previousRef: "results.trend.summary.firstPeriodRate",
+        format: "percent",
+        higherIs: "bad",
+      },
+      { type: "LineChart", id: "defect-line", title: "Defect rate by period", dataRef: "results.trend.rows", xField: "label", yField: "defectRate", format: "percent" },
+    ],
+  },
 ];
 
 export function getCuratedPrompt(id: string): CuratedPrompt | undefined {
@@ -172,6 +223,7 @@ export class RunError extends Error {}
 
 export interface CuratedRun {
   experience: ExperienceSpec;
+  calls: PlannedCall[];
   envelope: Envelope;
   trace: Trace;
 }
@@ -190,34 +242,16 @@ export async function runCurated(session: Session, promptId: string): Promise<Cu
   if (!getOrganization(session.organizationId)?.available) throw new RunError("Organization not available");
 
   const calls = prompt.plan();
-  const envelope: Envelope = { results: {} };
-  const executions: ExecutionRecord[] = [];
   const decisions: Decision[] = calls.map((c) => ({
     capabilityId: c.capabilityId,
     rationale: c.rationale,
     source: "curated",
   }));
-
-  for (const call of calls) {
-    const outcome = await executeCapability(session, call.capabilityId, call.input);
-    executions.push(outcome.record);
-    if (outcome.result) envelope.results[call.key] = outcome.result.data;
-  }
-
-  const failed = executions.some((e) => e.status !== "ok");
-  const narrowed = executions.some((e) => e.policyChecks.some((c) => c.status === "narrowed"));
+  const { envelope, executions, failed, narrowed } = await executePlan(session, calls);
 
   const components: ExperienceComponent[] = failed
-    ? [
-        { type: "Notice", id: "blocked", level: "warning", text: "This request could not be completed for the selected role." },
-        { type: "EmptyState", id: "empty", title: "Nothing to show", text: "The policy layer blocked a required service call. See how PAA handled it in the inspector." },
-      ]
-    : [
-        ...(narrowed
-          ? [{ type: "Notice" as const, id: "scope", level: "info" as const, text: "Results are limited to the data this role is permitted to see." }]
-          : []),
-        ...prompt.compose(),
-      ];
+    ? blockedComponents()
+    : [...(narrowed ? [scopeNotice()] : []), ...prompt.compose()];
 
   const candidate = {
     version: "1",
@@ -233,6 +267,7 @@ export async function runCurated(session: Session, promptId: string): Promise<Cu
 
   return {
     experience: validated.spec,
+    calls: calls.map(({ key, capabilityId, input }) => ({ key, capabilityId, input })),
     envelope,
     trace: {
       organizationId: session.organizationId,

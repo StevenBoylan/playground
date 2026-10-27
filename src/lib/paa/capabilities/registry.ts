@@ -3,12 +3,19 @@ import { applyScope, authorizeAccess } from "../policies/authorize";
 import { ServiceInputError, type ServiceResult, type Session } from "../schemas/capability";
 import type { ExecutionRecord, PolicyCheck } from "../schemas/trace";
 import type { RegisteredCapability } from "./define";
-import { defectRates, downtimeBreakdown, productionSummary } from "./northstar";
+import {
+  defectRates,
+  defectTrend,
+  downtimeBreakdown,
+  downtimeByLocation,
+  downtimeTrend,
+  productionSummary,
+} from "./northstar";
 
 const SERVICE_TIMEOUT_MS = 5000;
 
 const registry = new Map<string, RegisteredCapability>(
-  [productionSummary, defectRates, downtimeBreakdown].map((c) => [c.id, c]),
+  [productionSummary, defectRates, defectTrend, downtimeBreakdown, downtimeByLocation, downtimeTrend].map((c) => [c.id, c]),
 );
 
 export function getCapability(id: string): RegisteredCapability | undefined {

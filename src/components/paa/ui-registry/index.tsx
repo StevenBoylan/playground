@@ -166,6 +166,76 @@ export function DataTable({ component, envelope }: Props<"DataTable">) {
   );
 }
 
+export function Comparison({ component, envelope }: Props<"Comparison">) {
+  const current = Number(resolveRef(envelope, component.currentRef));
+  const previous = Number(resolveRef(envelope, component.previousRef));
+  const diff = current - previous;
+  const isRate = component.format === "percent";
+  const sign = diff > 0 ? "+" : diff < 0 ? "−" : "";
+  const abs = Math.abs(diff);
+  const change = isRate ? `${sign}${(abs * 100).toFixed(1)} percentage points` : `${sign}${formatValue(abs, component.format)}`;
+  const relative = !isRate && previous !== 0 ? ` (${diff > 0 ? "+" : diff < 0 ? "−" : ""}${Math.abs((diff / previous) * 100).toFixed(1)}%)` : "";
+  const good = component.higherIs === "good" ? diff > 0 : component.higherIs === "bad" ? diff < 0 : null;
+  const tone = diff === 0 || good === null ? "text-neutral-700 dark:text-neutral-300" : good ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400";
+  const arrow = diff > 0 ? "▲" : diff < 0 ? "▼" : "■";
+  return (
+    <Card title={component.title}>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">{component.previousLabel}</p>
+          <p className="text-2xl font-semibold">{formatValue(previous, component.format)}</p>
+        </div>
+        <div>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">{component.currentLabel}</p>
+          <p className="text-2xl font-semibold" style={{ color: "var(--accent)" }}>
+            {formatValue(current, component.format)}
+          </p>
+        </div>
+      </div>
+      <p className={`mt-3 text-sm font-medium ${tone}`}>
+        <span aria-hidden="true">{arrow} </span>
+        {change}
+        {relative}
+      </p>
+    </Card>
+  );
+}
+
+export function FilterBar({
+  component,
+  values,
+  onChange,
+}: {
+  component: Of<"FilterBar">;
+  values: Record<string, string>;
+  onChange?: (callKey: string, param: string, value: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-4 rounded-lg border border-dashed border-neutral-400 p-3 dark:border-neutral-600">
+      {component.filters.map((f) => {
+        const id = `${component.id}-${f.callKey}-${f.param}`;
+        return (
+          <label key={id} htmlFor={id} className="flex items-center gap-2 text-sm">
+            {f.label}
+            <select
+              id={id}
+              value={values[`${f.callKey}.${f.param}`] ?? f.options[0].value}
+              onChange={(e) => onChange?.(f.callKey, f.param, e.target.value)}
+              className="rounded border border-neutral-300 bg-transparent px-2 py-1 dark:border-neutral-700"
+            >
+              {f.options.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
 export function Notice({ component }: Props<"Notice">) {
   const tone =
     component.level === "warning"
