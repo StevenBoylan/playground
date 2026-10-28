@@ -27,7 +27,7 @@ export const projects: PlaygroundProject[] = [
     tagline: "Software without the learning curve.",
     description:
       "State an intent. An AI layer chooses authorized capabilities, trusted services run them, and a purpose-built interface is composed on the fly. All companies and data are fictional.",
-    tags: ["ai", "software"],
+    tags: ["framework", "ai", "software"],
   },
   {
     slug: "lim",
@@ -36,7 +36,7 @@ export const projects: PlaygroundProject[] = [
     description:
       "An illustrative, fictional walkthrough of Latent Intent Marketing: how permissioned buyer-side agents could arrive at a personalised offer.",
     href: "/lim",
-    tags: ["ai", "marketing"],
+    tags: ["framework", "ai", "marketing"],
   },
   {
     slug: "4gates",
