@@ -21,9 +21,10 @@ export default function PlaygroundHome() {
         </p>
 
         <ul className="mt-14 grid gap-5 sm:grid-cols-2">
-          {projects.map((p) => (
-            <li key={p.slug}>
-              <Link href={`/${p.slug}`} className="card card-lift focus-ring group block h-full overflow-hidden">
+          {projects.map((p) => {
+            const cardClass = "card card-lift focus-ring group block h-full overflow-hidden";
+            const inner = (
+              <>
                 <div
                   className="relative h-36 overflow-hidden"
                   style={{ background: "linear-gradient(110deg, #006d77 0%, #008a98 55%, #007fad 100%)" }}
@@ -43,9 +44,23 @@ export default function PlaygroundHome() {
                     Open the demo <ArrowRightIcon width={16} height={16} />
                   </span>
                 </div>
-              </Link>
-            </li>
-          ))}
+              </>
+            );
+            return (
+              <li key={p.slug}>
+                {p.href ? (
+                  // A static build under /public: a plain link, not client-side navigation.
+                  <a href={p.href} className={cardClass}>
+                    {inner}
+                  </a>
+                ) : (
+                  <Link href={`/${p.slug}`} className={cardClass}>
+                    {inner}
+                  </Link>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </div>
     </main>
