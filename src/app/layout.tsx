@@ -36,22 +36,21 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <nav className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 sm:px-6" aria-label="Main">
             <Link
               href="/"
-              aria-label="playground.stevenboylan, home"
-              className="focus-ring flex items-center gap-3 rounded-lg font-[family-name:var(--font-montserrat)] font-extrabold leading-none"
+              aria-label="playground.STEVENBOYLAN, home"
+              className="focus-ring flex items-center rounded-lg font-[family-name:var(--font-montserrat)] text-[0.95rem] font-extrabold leading-none tracking-[-0.01em] text-ink sm:text-xl"
             >
-              <span aria-hidden="true" className="text-xl tracking-tight text-ink">
-                <span className="text-[color:var(--brand-from)]">_</span>p.<span className="brand-grad">SB</span>
-              </span>
-              <span className="hidden text-base tracking-tight text-ink sm:inline">
-                playground.steven<span className="brand-grad">boylan</span>
+              <span aria-hidden="true" className="wordmark-us" />
+              <span aria-hidden="true">
+                playground.STEVEN<span className="brand-grad">BOYLAN</span>
               </span>
             </Link>
             <div className="flex items-center gap-1 font-[family-name:var(--font-montserrat)] text-sm font-medium sm:gap-3">
-              <a href={SITE} className="focus-ring rounded-lg px-2 py-1 text-muted transition-colors hover:text-ink">
-                Back to home
+              <a href={SITE} className="focus-ring whitespace-nowrap rounded-lg px-2 py-1 text-muted transition-colors hover:text-ink">
+                <span className="sm:hidden">Home</span>
+                <span className="hidden sm:inline">Back to home</span>
               </a>
-              <a href={`${SITE}/contact-me/`} className="focus-ring rounded-lg px-2 py-1 text-muted transition-colors hover:text-ink">
-                Contact me
+              <a href={`${SITE}/contact-me/`} className="focus-ring whitespace-nowrap rounded-lg px-2 py-1 text-muted transition-colors hover:text-ink">
+                Contact<span className="hidden sm:inline"> me</span>
               </a>
             </div>
           </nav>

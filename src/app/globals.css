@@ -184,3 +184,14 @@ body {
   background-clip: text;
   color: transparent;
 }
+
+/* Leading underscore of the wordmark: a solid teal bar, the gradient's starting colour. */
+.wordmark-us {
+  display: inline-block;
+  width: 0.78em;
+  height: 0.2em;
+  margin-right: 0.36em;
+  border-radius: 0.04em;
+  background: var(--brand-from);
+  transform: translateY(0.14em);
+}
