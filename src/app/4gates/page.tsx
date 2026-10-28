@@ -34,7 +34,7 @@ export default function FourGatesPage() {
 
           {/* Why this exists */}
           <section aria-labelledby="why" className="card mt-8 grid gap-6 p-5 sm:p-6 lg:grid-cols-[1fr_1.4fr] lg:gap-10">
-            <blockquote className="self-center border-l-4 border-accent py-1 pl-5 text-2xl font-medium italic leading-snug">
+            <blockquote className="self-center border-l-4 border-accent py-1 pl-5 text-2xl font-medium italic leading-snug text-[color:var(--accent)]">
               “{INTRO.hook.quote}”
               <footer className="mt-2 text-sm not-italic text-muted">— {INTRO.hook.by}</footer>
             </blockquote>
