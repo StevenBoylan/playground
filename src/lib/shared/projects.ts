@@ -23,4 +23,11 @@ export const projects: PlaygroundProject[] = [
       "An illustrative, fictional walkthrough of Latent Intent Marketing: how permissioned buyer-side agents could arrive at a personalised offer.",
     href: "/lim",
   },
+  {
+    slug: "4gates",
+    name: "The Four Gates",
+    tagline: "What earns you the right to move from idea to product.",
+    description:
+      "A self-assessment guide for product teams. Four gates, each asking one question and needing evidence before you move on. Check your own evidence at each stage.",
+  },
 ];
