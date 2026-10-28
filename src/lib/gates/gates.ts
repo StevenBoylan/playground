@@ -6,6 +6,8 @@
  */
 
 export type LevelId = "gold" | "strong" | "useful";
+/** What a user can tick. "notEnough" is the guide's "not enough on their own" row. */
+export type ChoiceId = LevelId | "notEnough";
 
 export interface Gate {
   id: string;
@@ -81,7 +83,7 @@ export const GATES: Gate[] = [
     exitLine: "not enough to proceed — go back and collect stronger evidence",
     earns: "Successful discovery earns the right to build an MVP.",
     thresholdLabel: "Your threshold",
-    thresholdHint: "The number you declared before testing. If you declared nothing, write nothing.",
+    thresholdHint: "The metric you declared before testing. If you declared nothing, write nothing.",
   },
   {
     id: "mvp",
@@ -265,7 +267,7 @@ export type Verdict =
  * Turns what the user has ticked into a decision, using the guide's own logic: strong evidence passes,
  * but only if the bar was declared first; weaker evidence means test again; nothing means stop.
  */
-export function verdictFor(selected: Set<LevelId>, threshold: string, touched: boolean): Verdict {
+export function verdictFor(selected: Set<ChoiceId>, threshold: string, touched: boolean): Verdict {
   if (!touched) return { kind: "empty" };
   const strongEnough = selected.has("gold") || selected.has("strong");
   if (strongEnough) return threshold.trim() ? { kind: "pass" } : { kind: "needs-threshold" };

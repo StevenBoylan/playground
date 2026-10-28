@@ -2,21 +2,30 @@
 
 import { useId, useRef, useState, type KeyboardEvent } from "react";
 import { ArrowRightIcon, CheckIcon, DownloadIcon } from "@/components/shared/icons";
-import { CLOSING, GATES, verdictFor, type Gate, type LevelId, type Verdict } from "@/lib/gates/gates";
+import { CLOSING, GATES, verdictFor, type ChoiceId, type Gate, type Verdict } from "@/lib/gates/gates";
 
 interface GateState {
-  selected: LevelId[];
+  selected: ChoiceId[];
   threshold: string;
   checked: boolean;
 }
 
 const EMPTY: GateState = { selected: [], threshold: "", checked: false };
 
-const LEVELS: { id: LevelId; label: string }[] = [
+/** The hierarchy, strongest first. Shown only after the user checks, so the options themselves don't give it away. */
+const HIERARCHY: { id: ChoiceId; label: string }[] = [
   { id: "gold", label: "Gold standard" },
   { id: "strong", label: "Strong evidence" },
   { id: "useful", label: "Useful but weaker" },
+  { id: "notEnough", label: "Not enough on their own" },
 ];
+
+/** A fixed, mixed-up order for the options (not the hierarchy order). */
+const OPTION_ORDER: ChoiceId[] = ["useful", "gold", "notEnough", "strong"];
+
+function textFor(gate: Gate, id: ChoiceId) {
+  return id === "notEnough" ? gate.notEnough : gate.levels[id];
+}
 
 const PDF_URL = "/4gates/The_Four_Gates_StevenBoylan.pdf";
 
@@ -45,7 +54,7 @@ function statusText(kind: Verdict["kind"]) {
   }
 }
 
-function VerdictPanel({ gate, verdict }: { gate: Gate; verdict: Verdict }) {
+function VerdictPanel({ gate, verdict, selected }: { gate: Gate; verdict: Verdict; selected: ChoiceId[] }) {
   if (verdict.kind === "empty") return null;
   const tone =
     verdict.kind === "pass"
@@ -76,6 +85,22 @@ function VerdictPanel({ gate, verdict }: { gate: Gate; verdict: Verdict }) {
     <div className={`mt-5 rounded-xl border p-4 ${tone}`}>
       <p className="text-sm font-semibold">{title}</p>
       <p className="mt-1 text-sm leading-relaxed text-muted">{body}</p>
+      <p className="mt-3 text-xs font-semibold uppercase tracking-widest text-muted">Where your evidence sits</p>
+      <ul className="mt-1.5 flex flex-wrap gap-1.5">
+        {HIERARCHY.map((h) => {
+          const on = selected.includes(h.id);
+          return (
+            <li
+              key={h.id}
+              className={`rounded-full border px-2.5 py-1 text-xs ${on ? "border-accent bg-accent/10 font-semibold text-ink" : "border-line text-muted"}`}
+            >
+              {on && <span aria-hidden="true">✓ </span>}
+              {h.label}
+              {on && <span className="sr-only"> (you ticked this)</span>}
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
@@ -93,7 +118,7 @@ export function GatesExplorer() {
   function update(patch: Partial<GateState>) {
     setStates((prev) => prev.map((s, i) => (i === active ? { ...s, ...patch } : s)));
   }
-  function toggle(level: LevelId) {
+  function toggle(level: ChoiceId) {
     const has = state.selected.includes(level);
     update({ selected: has ? state.selected.filter((l) => l !== level) : [...state.selected, level] });
   }
@@ -254,32 +279,25 @@ export function GatesExplorer() {
               </div>
 
               <fieldset className="mt-4">
-                <legend className="text-sm font-semibold">Evidence hierarchy</legend>
+                <legend className="text-sm font-semibold">What evidence do you have?</legend>
                 <ul className="mt-2 space-y-2">
-                  {LEVELS.map((l) => {
-                    const id = `${baseId}-${gate.id}-${l.id}`;
-                    const on = state.selected.includes(l.id);
+                  {OPTION_ORDER.map((optId) => {
+                    const id = `${baseId}-${gate.id}-${optId}`;
+                    const on = state.selected.includes(optId);
                     return (
-                      <li key={l.id}>
+                      <li key={optId}>
                         <label
                           htmlFor={id}
                           className={`flex cursor-pointer gap-3 rounded-xl border p-3 text-sm leading-relaxed transition-colors ${
                             on ? "border-accent bg-accent/10" : "border-line bg-surface"
                           }`}
                         >
-                          <input id={id} type="checkbox" checked={on} onChange={() => toggle(l.id)} className="focus-ring mt-1 h-4 w-4 shrink-0 accent-[var(--accent)]" />
-                          <span>
-                            <span className="font-semibold">{l.label}: </span>
-                            <span className="text-muted">{gate.levels[l.id]}</span>
-                          </span>
+                          <input id={id} type="checkbox" checked={on} onChange={() => toggle(optId)} className="focus-ring mt-1 h-4 w-4 shrink-0 accent-[var(--accent)]" />
+                          <span className="text-muted">{textFor(gate, optId)}</span>
                         </label>
                       </li>
                     );
                   })}
-                  <li className="rounded-xl border border-dashed border-line p-3 text-sm leading-relaxed text-muted">
-                    <span className="font-semibold text-ink">Not enough on their own: </span>
-                    {gate.notEnough}
-                  </li>
                 </ul>
               </fieldset>
 
@@ -294,7 +312,7 @@ export function GatesExplorer() {
               </button>
 
               <div aria-live="polite">
-                <VerdictPanel gate={gate} verdict={verdict} />
+                <VerdictPanel gate={gate} verdict={verdict} selected={state.selected} />
               </div>
             </div>
           </div>

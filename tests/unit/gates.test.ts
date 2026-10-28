@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { GATES, verdictFor, type LevelId } from "@/lib/gates/gates";
+import { GATES, verdictFor, type ChoiceId } from "@/lib/gates/gates";
 
-const set = (...l: LevelId[]) => new Set<LevelId>(l);
+const set = (...l: ChoiceId[]) => new Set<ChoiceId>(l);
 
 describe("Four Gates verdicts", () => {
   it("shows nothing until the user has checked", () => {
@@ -14,6 +14,8 @@ describe("Four Gates verdicts", () => {
   it("asks to test again on weaker evidence, and stops on none", () => {
     expect(verdictFor(set("useful"), "x", true).kind).toBe("retry");
     expect(verdictFor(set(), "x", true).kind).toBe("stop");
+    expect(verdictFor(set("notEnough"), "x", true).kind).toBe("stop");
+    expect(verdictFor(set("notEnough", "useful"), "x", true).kind).toBe("retry");
   });
   it("defines four gates with the guide's questions and full evidence ladders", () => {
     expect(GATES.map((g) => g.name)).toEqual(["Discovery", "MVP", "Pilot", "Productisation"]);
