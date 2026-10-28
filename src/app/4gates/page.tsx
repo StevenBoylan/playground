@@ -33,19 +33,21 @@ export default function FourGatesPage() {
           <p className="mt-4 max-w-2xl text-xl leading-relaxed text-muted">What earns you the right to move from idea to product.</p>
 
           {/* Why this exists */}
-          <section aria-labelledby="why" className="card mt-8 max-w-3xl p-5 sm:p-6">
-            <blockquote className="border-l-4 border-accent pl-4 text-lg font-medium italic leading-snug">
+          <section aria-labelledby="why" className="card mt-8 grid gap-6 p-5 sm:p-6 lg:grid-cols-[1fr_1.4fr] lg:gap-10">
+            <blockquote className="self-start border-l-4 border-accent pl-4 text-xl font-medium italic leading-snug">
               “{INTRO.hook.quote}”
-              <footer className="mt-1 text-sm not-italic text-muted">— {INTRO.hook.by}</footer>
+              <footer className="mt-2 text-sm not-italic text-muted">— {INTRO.hook.by}</footer>
             </blockquote>
-            <h2 id="why" className="mt-5 text-xl font-semibold tracking-tight">
-              {INTRO.heading}
-            </h2>
-            {INTRO.paras.map((p) => (
-              <p key={p.slice(0, 24)} className="mt-3 leading-relaxed">
-                {p}
-              </p>
-            ))}
+            <div>
+              <h2 id="why" className="text-xl font-semibold tracking-tight">
+                {INTRO.heading}
+              </h2>
+              {INTRO.paras.map((p) => (
+                <p key={p.slice(0, 24)} className="mt-3 leading-relaxed">
+                  {p}
+                </p>
+              ))}
+            </div>
           </section>
 
           {/* The problem */}
@@ -66,17 +68,21 @@ export default function FourGatesPage() {
           </section>
 
           {/* The principle */}
-          <section aria-label="The principle" className="card mt-10 max-w-3xl p-5 sm:p-6">
-            <p className="leading-relaxed">{PRINCIPLE.intro}</p>
-            <p className="mt-3 font-semibold">{PRINCIPLE.warning}</p>
-            <p className="mt-5 text-center text-lg font-semibold tracking-tight text-accent">{PRINCIPLE.formula}</p>
-            <ul className="mt-4 space-y-1 text-sm leading-relaxed text-muted">
-              {PRINCIPLE.chain.map((c) => (
-                <li key={c.stage}>
-                  <span className="font-semibold text-ink">{c.stage}</span> → {c.evidence} → {c.invest}
-                </li>
-              ))}
-            </ul>
+          <section aria-label="The principle" className="card mt-10 grid gap-6 p-5 sm:p-6 lg:grid-cols-[1fr_1.4fr] lg:gap-10">
+            <div>
+              <p className="leading-relaxed">{PRINCIPLE.intro}</p>
+              <p className="mt-3 font-semibold">{PRINCIPLE.warning}</p>
+            </div>
+            <div>
+              <p className="text-lg font-semibold tracking-tight text-accent lg:text-xl">{PRINCIPLE.formula}</p>
+              <ul className="mt-3 space-y-1 text-sm leading-relaxed text-muted">
+                {PRINCIPLE.chain.map((c) => (
+                  <li key={c.stage}>
+                    <span className="font-semibold text-ink">{c.stage}</span> → {c.evidence} → {c.invest}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </section>
 
           {/* So where are you? */}
