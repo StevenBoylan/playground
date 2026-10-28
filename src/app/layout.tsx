@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// The header carries the stevenboylan.eu look: Montserrat, black and the site's green.
+// The header carries the stevenboylan.eu look: Montserrat, black and the site's teal-to-cyan.
 const montserrat = Montserrat({
   variable: "--font-montserrat",
   subsets: ["latin"],
@@ -40,10 +40,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               className="focus-ring flex items-center gap-3 rounded-lg font-[family-name:var(--font-montserrat)] font-extrabold leading-none"
             >
               <span aria-hidden="true" className="text-xl tracking-tight text-ink">
-                <span className="text-[#00d285]">_</span>p.<span className="text-[#00d285]">SB</span>
+                <span className="text-[color:var(--brand-from)]">_</span>p.<span className="brand-grad">SB</span>
               </span>
               <span className="hidden text-base tracking-tight text-ink sm:inline">
-                playground.steven<span className="text-[#00d285]">boylan</span>
+                playground.steven<span className="brand-grad">boylan</span>
               </span>
             </Link>
             <div className="flex items-center gap-1 font-[family-name:var(--font-montserrat)] text-sm font-medium sm:gap-3">

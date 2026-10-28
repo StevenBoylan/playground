@@ -8,7 +8,7 @@ export default function PlaygroundHome() {
       <div className="grid-fade pointer-events-none absolute inset-x-0 top-0 h-[420px]" aria-hidden="true" />
       <div className="relative mx-auto w-full max-w-6xl px-4 pb-20 pt-16 sm:px-6 sm:pt-24">
         <p className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-3 py-1 text-xs font-medium text-muted backdrop-blur">
-          <span className="h-1.5 w-1.5 rounded-full bg-good" aria-hidden="true" />
+          <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
           Open-source concept demos
         </p>
         <h1 className="mt-5 max-w-3xl text-5xl font-semibold tracking-tight sm:text-6xl">
@@ -26,7 +26,7 @@ export default function PlaygroundHome() {
               <Link href={`/${p.slug}`} className="card card-lift focus-ring group block h-full overflow-hidden">
                 <div
                   className="relative h-36 overflow-hidden"
-                  style={{ background: "linear-gradient(135deg, color-mix(in srgb, #2563eb 85%, #000), #7c3aed 60%, #db2777)" }}
+                  style={{ background: "linear-gradient(110deg, #006d77 0%, #008a98 55%, #007fad 100%)" }}
                   aria-hidden="true"
                 >
                   <div className="grid-fade absolute inset-0 opacity-60" style={{ filter: "invert(1)" }} />

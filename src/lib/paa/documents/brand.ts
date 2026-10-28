@@ -14,7 +14,7 @@ export function brandFor(organizationId: string, branded = true): Brand {
   return {
     name,
     shortName: name.split(" ")[0],
-    accent: org?.accent ?? "#2563eb",
+    accent: org?.accent ?? "#007f86",
     footer: `${name} · Fictional company · Synthetic data`,
     emailDomain: `${name.split(" ")[0].toLowerCase()}.example`,
   };

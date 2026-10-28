@@ -11,7 +11,7 @@ export interface ChartSvgInput {
   height?: number;
 }
 
-const PALETTE = ["#6366f1", "#06b6d4", "#f59e0b", "#ec4899", "#10b981", "#8b5cf6", "#f97316"];
+const PALETTE = ["#007f86", "#f59e0b", "#0891b2", "#ec4899", "#10b981", "#8b5cf6", "#f97316"];
 const INK = "#1f2937";
 const MUTED = "#6b7280";
 const GRID = "#e5e7eb";

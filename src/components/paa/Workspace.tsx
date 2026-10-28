@@ -413,7 +413,7 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
                   disabled={!o.available}
                   onClick={() => choose(o.id)}
                   className="card card-lift focus-ring group relative flex h-full w-full flex-col overflow-hidden p-0 text-left disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0"
-                  style={{ ["--accent" as string]: o.accent }}
+                  style={{ ["--accent" as string]: o.accent, ["--accent-end" as string]: `color-mix(in srgb, ${o.accent} 55%, #0b1020)` }}
                 >
                   <span
                     className="relative block h-24 overflow-hidden"
@@ -455,7 +455,7 @@ export function Workspace({ organizations, intro }: { organizations: Organizatio
   const suggestions = awaiting ? BRANDING_ANSWERS : view ? FOLLOW_UP_HINTS : org.prompts.map((p) => p.text);
 
   return (
-    <div style={{ ["--accent" as string]: org.accent }}>
+    <div style={{ ["--accent" as string]: org.accent, ["--accent-end" as string]: `color-mix(in srgb, ${org.accent} 55%, #0b1020)` }}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <button
           type="button"

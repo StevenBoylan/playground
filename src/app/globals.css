@@ -5,13 +5,18 @@
  * --accent is overridden per company, so one renderer carries every brand.
  */
 :root {
-  --bg: #f4f6fb;
+  --bg: #f6f7fb;
   --surface: #ffffff;
-  --surface-2: #eef1f8;
-  --line: #e1e5f0;
-  --text: #0d1222;
-  --muted: #546079;
-  --accent: #2563eb;
+  --surface-2: #eef0f7;
+  --line: #e4e6ef;
+  --text: #14161f;
+  --muted: #636880;
+  /* Brand teal/cyan (matches stevenboylan.eu). Companies override --accent and --accent-end per workspace. */
+  --accent: #007f86;
+  --accent-end: #087f9c;
+  --brand-from: #007f86;
+  --brand-to: #0891b2;
+  --glow: #0891b2;
   --good: #047857;
   --bad: #be123c;
   --warn: #b45309;
@@ -22,12 +27,14 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #080b14;
-    --surface: #10141f;
-    --surface-2: #171c2b;
-    --line: #232a3f;
-    --text: #e8ebf6;
-    --muted: #96a0b8;
+    --bg: #0d0f17;
+    --surface: #151824;
+    --surface-2: #1b1f2e;
+    --line: #262a3b;
+    --text: #eef0f8;
+    --muted: #9aa0b8;
+    --brand-from: #2dd4d4;
+    --brand-to: #67e8f9;
     --good: #34d399;
     --bad: #fb7185;
     --warn: #fbbf24;
@@ -67,7 +74,7 @@ body {
 .app-bg {
   background:
     radial-gradient(900px 480px at 85% -8%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 62%),
-    radial-gradient(700px 380px at -5% 4%, color-mix(in srgb, #8b5cf6 11%, transparent), transparent 58%);
+    radial-gradient(700px 380px at -5% 4%, color-mix(in srgb, var(--glow) 11%, transparent), transparent 58%);
 }
 
 .grid-fade {
@@ -98,7 +105,7 @@ body {
 }
 
 .text-gradient {
-  background: linear-gradient(100deg, var(--text) 20%, color-mix(in srgb, var(--accent) 80%, var(--text)) 85%);
+  background: linear-gradient(100deg, color-mix(in srgb, var(--accent) 80%, var(--text)), var(--accent-end));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -168,4 +175,12 @@ body {
 .accent-ink,
 .text-accent {
   color: color-mix(in srgb, var(--accent) 62%, var(--text));
+}
+
+/* Wordmark / headline gradient in the approved teal-to-cyan. */
+.brand-grad {
+  background: linear-gradient(100deg, var(--brand-from), var(--brand-to));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }

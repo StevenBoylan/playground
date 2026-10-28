@@ -326,7 +326,7 @@ export function DeliverablePanel({ deliverable, onClose }: { deliverable: Delive
             href={url}
             download={deliverable.file.filename}
             className="focus-ring inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-sm"
-            style={{ background: "linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, #7c3aed))" }}
+            style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-end))" }}
           >
             <DownloadIcon width={16} height={16} />
             Download

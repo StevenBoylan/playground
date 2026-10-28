@@ -84,7 +84,7 @@ export function IntentBar({ value, onChange, onSubmit, disabled, suggestions, co
           className={`focus-ring inline-flex shrink-0 items-center gap-2 rounded-xl font-semibold text-white shadow-sm transition-opacity disabled:opacity-40 ${
             compact ? "px-4 py-2.5 text-sm" : "px-5 py-3 text-base"
           }`}
-          style={{ background: "linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, #7c3aed))" }}
+          style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-end))" }}
         >
           Build
           <SendIcon width={16} height={16} />

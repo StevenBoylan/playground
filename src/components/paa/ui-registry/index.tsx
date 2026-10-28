@@ -27,7 +27,7 @@ interface Props<T extends ExperienceComponent["type"]> {
   envelope: Envelope;
 }
 
-const PALETTE = ["#6366f1", "#06b6d4", "#f59e0b", "#ec4899", "#10b981", "#8b5cf6", "#f97316"];
+const PALETTE = ["#007f86", "#f59e0b", "#0891b2", "#ec4899", "#10b981", "#8b5cf6", "#f97316"];
 const NUMERIC: Format[] = ["integer", "number", "percent", "minutes", "currency"];
 
 const AXIS = { tick: { fill: "var(--muted)", fontSize: 12 }, axisLine: false, tickLine: false } as const;

@@ -8,7 +8,7 @@ const H = 841.89;
 const M = 48;
 const CW = W - 2 * M;
 const BOTTOM = 62;
-const PALETTE = ["#6366f1", "#06b6d4", "#f59e0b", "#ec4899", "#10b981", "#8b5cf6", "#f97316"];
+const PALETTE = ["#007f86", "#f59e0b", "#0891b2", "#ec4899", "#10b981", "#8b5cf6", "#f97316"];
 
 const INK = "#111827";
 const MUTED = "#6b7280";
