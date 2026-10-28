@@ -1,8 +1,8 @@
 /**
  * Content for The Four Gates demo (stevenboylan.eu). Wording for the gate questions, evidence ladders,
  * exit lines and failure examples is taken verbatim from the published guide; the short explanations are
- * condensed from it. The MVP ladder is a DRAFT derived from the guide's text and worksheet (the guide
- * only gives the gate question and "not enough on their own" for MVP) and needs the author's sign-off.
+ * condensed from it. The MVP evidence ladder comes from the author's own one-page canvas, because the
+ * guide gives MVP only the gate question and its "not enough on their own" line.
  */
 
 export type LevelId = "gold" | "strong" | "useful";
@@ -34,11 +34,13 @@ export interface Gate {
   thresholdHint: string;
   /** Extra questions the guide asks (Productisation). */
   askYourself?: string[];
+  /** A two-column contrast shown under the explanation (Productisation). */
+  compare?: { left: { title: string; items: string[] }; right: { title: string; items: string[] }; line: string };
 }
 
 export const PRINCIPLE = {
   formula: "Evidence − Uncertainty = Justified Investment",
-  intro: "Each gate asks one question and requires enough evidence before you've earned the right to move on. The gates are not milestones. They are decision points. Passing is good. Failing is good. Going backwards is often the smartest decision you'll make.",
+  intro: "The gates are not milestones. They are decision points. Passing is good. Failing is good. Going backwards is often the smartest decision you'll make.",
   warning: "The expensive mistake is not failing, it's pretending you've passed when you haven't.",
   chain: [
     { stage: "Discovery", evidence: "evidence of demand", invest: "invest in MVP" },
@@ -102,12 +104,10 @@ export const GATES: Gate[] = [
         "The corporate MVP that took a year because it had to satisfy every stakeholder before meeting a single user.",
       ],
     },
-    // DRAFT: the guide gives no ladder for MVP. Derived from the gate question and worksheet 02
-    // ("Name the buyer. Name the budget it comes from." / "Real conditions and real stakes, or a favour?").
     levels: {
-      gold: "A named customer uses your solution to solve a real problem and is paying for it, from a budget you can name.",
-      strong: "A named buyer with a budget line has committed in writing to pay for this solution, under real conditions and real stakes.",
-      useful: "A named customer uses it and says they would pay, but nothing is committed yet. Or a manual version is running with real users.",
+      gold: "A named customer solves a real problem with your MVP and is willing to pay for it.",
+      strong: "The customer actively uses the MVP, validates the data and agrees to pilot.",
+      useful: "Positive demos, customer engagement, feature requests, verbal intent to buy.",
     },
     notEnough: "A working demo nobody has committed to. Enthusiasm without a named buyer or a budget line.",
     exitLine: "not enough to proceed — find the buyer before building more",
@@ -178,6 +178,11 @@ export const GATES: Gate[] = [
     earns: "A repeatable product earns the right to scale.",
     thresholdLabel: "Renewal and reference",
     thresholdHint: "What ran without you, and what did it cost when effort was priced honestly? Did the first customer come back, and would they say so publicly?",
+    compare: {
+      left: { title: "Pilot heroics", items: ["Founder on every call", "Manual data cleaning", "Custom deployment", "Engineers patch quietly", "Heroics priced at €0"] },
+      right: { title: "Product", items: ["Documented onboarding", "Known data constraints", "Repeatable deployment", "Predictable support", "Profitable at real cost"] },
+      line: "If it only works because your best people are in the room, you have a successful pilot — not yet a repeatable product.",
+    },
     askYourself: [
       "Is the product only working because your engineers are manually fixing problems behind the scenes?",
       "Does it rely on perfectly clean, well-structured data that your customers won't actually have?",
@@ -187,6 +192,57 @@ export const GATES: Gate[] = [
     ],
   },
 ];
+
+export const INTRO = {
+  heading: "Why this exists",
+  hook: { quote: "Everyone has a plan until they get punched in the mouth.", by: "Mike Tyson" },
+  paras: [
+    "This isn't a new framework. It's a checklist that sits on top of lean and agile, built from mistakes I've made and mistakes I've watched others make. In every case the team skipped ahead when it should have iterated.",
+    "Each gate asks one question and what evidence you need before you spend more. It won't tell you what to build. It stops you pretending you've passed when you haven't.",
+  ],
+};
+
+export const PROBLEM = {
+  heading: "Teams confuse activity with evidence.",
+  pairs: [
+    { said: "We did the research", then: "So we build." },
+    { said: "We have a prototype", then: "Bring it to market." },
+    { said: "A client tested it out", then: "So we scale." },
+  ],
+  line: "Activity doesn't justify the next investment. Evidence does.",
+};
+
+export const WHERE = {
+  heading: "So where are you?",
+  dont: "What stage does our roadmap say we're at?",
+  ask: "Which is the last gate for which we actually have evidence?",
+  prompts: [
+    { n: "01", text: "Who committed?" },
+    { n: "02", text: "What will they pay for?" },
+    { n: "03", text: "What value was measured?" },
+    { n: "04", text: "What ran without you?" },
+  ],
+};
+
+export const NOT_LINEAR = {
+  heading: "Progress is not linear",
+  sub: "Ladders are evidence. Snakes are the stories we tell ourselves.",
+  strong: "Going backwards is not failure.",
+  then: "Pretending you passed a gate is.",
+  snakes: "Feature creep · vanity metrics · confirmation bias · free pilots · founder heroics",
+};
+
+export const YOUR_TURN = {
+  heading: "Your turn",
+  sub: "Take one real idea, product or project…",
+  steps: [
+    { n: "1", title: "Where are you really?", text: "Choose the last gate you can support with evidence." },
+    { n: "2", title: "What evidence do you have?", text: "Facts, commitments and measured outcomes — not intentions." },
+    { n: "3", title: "What is missing?", text: "Name the uncertainty that still blocks the next investment." },
+    { n: "4", title: "What is the cheapest credible test?", text: "Design the smallest experiment that could earn the right to move." },
+  ],
+  line: "The goal is not to get through the gates. The goal is to discover what is true before the expensive part!",
+};
 
 export const CLOSING = {
   title: "Four decisions",

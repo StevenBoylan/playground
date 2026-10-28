@@ -175,6 +175,29 @@ export function GatesExplorer() {
               ))}
               <blockquote className="my-5 border-l-4 border-accent pl-4 text-lg font-medium italic leading-snug">{gate.pullQuote}</blockquote>
 
+              {gate.compare && (
+                <div className="mb-5">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {[gate.compare.left, gate.compare.right].map((col, i) => (
+                      <div key={col.title} className={`rounded-xl border p-4 ${i === 1 ? "border-accent/40 bg-accent/10" : "border-line bg-surface-2"}`}>
+                        <h3 className={`text-xs font-semibold uppercase tracking-widest ${i === 1 ? "text-accent" : ""}`}>{col.title}</h3>
+                        <ul className="mt-2 space-y-1.5 text-sm">
+                          {col.items.map((it) => (
+                            <li key={it} className="flex gap-2">
+                              <span aria-hidden="true" className={i === 1 ? "text-accent" : "text-muted"}>
+                                {i === 1 ? "✓" : "×"}
+                              </span>
+                              {it}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-3 text-sm font-medium leading-relaxed">{gate.compare.line}</p>
+                </div>
+              )}
+
               {gate.askYourself && (
                 <div className="mb-5">
                   <h3 className="text-sm font-semibold">Ask yourself some uncomfortable questions</h3>
