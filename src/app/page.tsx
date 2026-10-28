@@ -17,8 +17,9 @@ export default function PlaygroundHome() {
           <br />
           not just read about.
         </h1>
-        <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">
-          A small collection of working prototypes and tools: how software could behave when AI, trusted services and policy work together, and frameworks for deciding what to build.
+        <h2 className="mt-8 text-sm font-semibold uppercase tracking-widest text-accent">Why a playground?</h2>
+        <p className="mt-2 max-w-2xl text-lg leading-relaxed text-muted">
+          Some ideas are easier to explore when you can interact with them. This is where I turn questions from my work in AI, product and strategy into tools and demonstrations: some about how software and markets might change, others about decisions teams face today.
         </p>
 
         <ul className="mt-14 grid gap-5 sm:grid-cols-2">
@@ -42,6 +43,8 @@ export default function PlaygroundHome() {
                   <p className="mt-1 font-medium text-accent">{p.tagline}</p>
                   <p className="mt-3 text-sm leading-relaxed text-muted">{p.description}</p>
                   <ProjectTags tags={p.tags} />
+                  <p className="mt-4 text-sm font-semibold">Why this exists</p>
+                  <p className="mt-1 text-sm leading-relaxed text-muted">{p.why}</p>
                   <span className="mt-auto inline-flex items-center gap-1.5 pt-5 text-sm font-medium transition-transform group-hover:translate-x-1">
                     Open the demo <ArrowRightIcon width={16} height={16} />
                   </span>
