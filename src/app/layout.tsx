@@ -41,7 +41,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             >
               <span aria-hidden="true" className="wordmark-us" />
               <span aria-hidden="true">
-                playground.STEVEN<span className="brand-grad">BOYLAN</span>
+                <span className="brand-grad-strong">playground.</span>STEVEN<span className="brand-grad">BOYLAN</span>
               </span>
             </Link>
             <div className="flex items-center gap-1 font-[family-name:var(--font-montserrat)] text-sm font-medium sm:gap-3">

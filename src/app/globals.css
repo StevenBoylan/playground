@@ -17,6 +17,7 @@
   --brand-from: #007f86;
   --brand-to: #0891b2;
   --glow: #0891b2;
+  --brand-strong: linear-gradient(100deg, #006d77, #0891b2 60%, #0ea5c6);
   --good: #047857;
   --bad: #be123c;
   --warn: #b45309;
@@ -35,6 +36,7 @@
     --muted: #9aa0b8;
     --brand-from: #2dd4d4;
     --brand-to: #67e8f9;
+    --brand-strong: linear-gradient(100deg, #14b8c9, #67e8f9 60%, #a5f3fc);
     --good: #34d399;
     --bad: #fb7185;
     --warn: #fbbf24;
@@ -194,4 +196,12 @@ body {
   border-radius: 0.04em;
   background: var(--brand-from);
   transform: translateY(0.14em);
+}
+
+/* A more visible teal-to-cyan sweep for the "playground." part of the wordmark. */
+.brand-grad-strong {
+  background: var(--brand-strong);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
