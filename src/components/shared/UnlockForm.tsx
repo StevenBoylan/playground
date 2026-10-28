@@ -85,6 +85,16 @@ export function UnlockForm() {
         Unlock
         <ArrowRightIcon width={16} height={16} />
       </button>
+
+      <div className="mt-6 border-t border-line pt-5">
+        <p className="text-sm font-semibold">Want access?</p>
+        <p className="mt-1 text-sm leading-relaxed text-muted">
+          <a href="https://stevenboylan.eu/contact/" className="focus-ring rounded font-medium text-accent underline underline-offset-2">
+            Contact me
+          </a>
+          , tell me why you&apos;re interested, and I&apos;ll sort it out.
+        </p>
+      </div>
     </form>
   );
 }

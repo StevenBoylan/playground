@@ -9,7 +9,7 @@ export default function PlaygroundHome() {
       <div className="relative mx-auto w-full max-w-6xl px-4 pb-20 pt-16 sm:px-6 sm:pt-24">
         <p className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-3 py-1 text-xs font-medium text-muted backdrop-blur">
           <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
-          Open-source concept demos
+          Open-source concept demos and product ideas
         </p>
         <h1 className="mt-5 max-w-3xl text-5xl font-semibold tracking-tight sm:text-6xl">
           <span className="text-gradient">Ideas you can use,</span>
@@ -17,7 +17,7 @@ export default function PlaygroundHome() {
           not just read about.
         </h1>
         <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">
-          A small collection of working prototypes exploring how software could behave when AI, trusted services and policy work together.
+          A small collection of working prototypes and tools: how software could behave when AI, trusted services and policy work together, and frameworks for deciding what to build.
         </p>
 
         <ul className="mt-14 grid gap-5 sm:grid-cols-2">
