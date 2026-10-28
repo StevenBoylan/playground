@@ -158,3 +158,25 @@ export const QuestionIcon = (p: P) => (
     <path d="M9.5 9.5a2.5 2.5 0 114 2c-.9.6-1.5 1-1.5 2M12 17h.01" />
   </Icon>
 );
+export const FrameworkIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M3 20h5v-4H3z" />
+    <path d="M8 16h5v-4H8z" />
+    <path d="M13 12h5V8h-5z" />
+    <path d="M18 8h3V4h-3z" />
+  </Icon>
+);
+export const MegaphoneIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M3 10v4l11 4V6L3 10z" />
+    <path d="M14 8.5a4 4 0 010 7" />
+    <path d="M6 14l1 5h3l-1-4" />
+  </Icon>
+);
+export const BoxIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z" />
+    <path d="M4 7.5l8 4.5 8-4.5" />
+    <path d="M12 12v9" />
+  </Icon>
+);

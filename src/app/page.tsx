@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRightIcon, LayersIcon } from "@/components/shared/icons";
+import { ProjectTags } from "@/components/shared/ProjectTags";
 import { projects } from "@/lib/shared/projects";
 
 export default function PlaygroundHome() {
@@ -22,7 +23,7 @@ export default function PlaygroundHome() {
 
         <ul className="mt-14 grid gap-5 sm:grid-cols-2">
           {projects.map((p) => {
-            const cardClass = "card card-lift focus-ring group block h-full overflow-hidden";
+            const cardClass = "card card-lift focus-ring group flex h-full flex-col overflow-hidden";
             const inner = (
               <>
                 <div
@@ -36,11 +37,12 @@ export default function PlaygroundHome() {
                     <span className="text-sm font-medium">Interactive demo</span>
                   </div>
                 </div>
-                <div className="p-6">
+                <div className="flex flex-1 flex-col p-6">
                   <h2 className="text-xl font-semibold tracking-tight">{p.name}</h2>
                   <p className="mt-1 font-medium text-accent">{p.tagline}</p>
                   <p className="mt-3 text-sm leading-relaxed text-muted">{p.description}</p>
-                  <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium transition-transform group-hover:translate-x-1">
+                  <ProjectTags tags={p.tags} />
+                  <span className="mt-auto inline-flex items-center gap-1.5 pt-5 text-sm font-medium transition-transform group-hover:translate-x-1">
                     Open the demo <ArrowRightIcon width={16} height={16} />
                   </span>
                 </div>
