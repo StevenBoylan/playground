@@ -34,7 +34,7 @@ export default function FourGatesPage() {
 
           {/* Why this exists */}
           <section aria-labelledby="why" className="card mt-8 grid gap-6 p-5 sm:p-6 lg:grid-cols-[1fr_1.4fr] lg:gap-10">
-            <blockquote className="self-start border-l-4 border-accent pl-4 text-xl font-medium italic leading-snug">
+            <blockquote className="self-center border-l-4 border-accent py-1 pl-5 text-2xl font-medium italic leading-snug">
               “{INTRO.hook.quote}”
               <footer className="mt-2 text-sm not-italic text-muted">— {INTRO.hook.by}</footer>
             </blockquote>
@@ -68,21 +68,23 @@ export default function FourGatesPage() {
           </section>
 
           {/* The principle */}
-          <section aria-label="The principle" className="card mt-10 grid gap-6 p-5 sm:p-6 lg:grid-cols-[1fr_1.4fr] lg:gap-10">
-            <div>
-              <p className="leading-relaxed">{PRINCIPLE.intro}</p>
-              <p className="mt-3 font-semibold">{PRINCIPLE.warning}</p>
+          <section aria-label="The principle" className="card mt-10 p-5 sm:p-6">
+            <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr] lg:items-center lg:gap-10">
+              <div>
+                <p className="leading-relaxed">{PRINCIPLE.intro}</p>
+                <p className="mt-3 font-semibold">{PRINCIPLE.warning}</p>
+              </div>
+              <p className="text-2xl font-semibold leading-tight tracking-tight text-accent lg:text-center">{PRINCIPLE.formula}</p>
             </div>
-            <div>
-              <p className="text-lg font-semibold tracking-tight text-accent lg:text-xl">{PRINCIPLE.formula}</p>
-              <ul className="mt-3 space-y-1 text-sm leading-relaxed text-muted">
-                {PRINCIPLE.chain.map((c) => (
-                  <li key={c.stage}>
-                    <span className="font-semibold text-ink">{c.stage}</span> → {c.evidence} → {c.invest}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <ol className="mt-6 grid gap-3 border-t border-line pt-6 sm:grid-cols-2 lg:grid-cols-4">
+              {PRINCIPLE.chain.map((c) => (
+                <li key={c.stage} className="rounded-xl bg-surface-2 p-4">
+                  <span className="block font-semibold">{c.stage}</span>
+                  <span className="mt-1 block text-sm text-muted">{c.evidence}</span>
+                  <span className="mt-2 block text-sm font-semibold text-accent">→ {c.invest}</span>
+                </li>
+              ))}
+            </ol>
           </section>
 
           {/* So where are you? */}
