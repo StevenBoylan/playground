@@ -205,3 +205,10 @@ body {
   background-clip: text;
   color: transparent;
 }
+
+/* Smooth in-page jumps (the Four Gates call to action), unless the visitor prefers less motion. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}

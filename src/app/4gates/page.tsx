@@ -27,10 +27,22 @@ export default function FourGatesPage() {
           <p className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-3 py-1 text-xs font-medium text-muted backdrop-blur">
             A self-assessment guide for product teams
           </p>
-          <h1 className="mt-5 max-w-3xl text-5xl font-semibold tracking-tight sm:text-6xl">
-            <span className="text-gradient">The Four Gates</span>
-          </h1>
-          <p className="mt-4 max-w-2xl text-xl leading-relaxed text-muted">What earns you the right to move from idea to product.</p>
+          <div className="mt-5 flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
+            <div>
+              <h1 className="max-w-3xl text-5xl font-semibold tracking-tight sm:text-6xl">
+                <span className="text-gradient">The Four Gates</span>
+              </h1>
+              <p className="mt-4 max-w-2xl text-xl leading-relaxed text-muted">What earns you the right to move from idea to product.</p>
+            </div>
+            <a
+              href="#test"
+              className="focus-ring inline-flex items-center gap-2 rounded-xl px-5 py-3 text-base font-semibold text-white shadow-sm"
+              style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-end))" }}
+            >
+              What stage are you at?
+              <span aria-hidden="true">↓</span>
+            </a>
+          </div>
 
           {/* Why this exists */}
           <section aria-labelledby="why" className="card mt-8 grid gap-6 p-5 sm:p-6 lg:grid-cols-[1fr_1.4fr] lg:gap-10">
@@ -107,7 +119,7 @@ export default function FourGatesPage() {
           </section>
         </div>
 
-        <div className="mt-10">
+        <div id="test" className="mt-10 scroll-mt-20">
           <GatesExplorer />
         </div>
 
