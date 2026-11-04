@@ -1,7 +1,41 @@
 import Link from "next/link";
-import { ArrowRightIcon, LayersIcon } from "@/components/shared/icons";
-import { ProjectTags } from "@/components/shared/ProjectTags";
-import { projects } from "@/lib/shared/projects";
+import { LockIcon } from "@/components/shared/icons";
+import { projects, type PlaygroundProject, type ProjectSection } from "@/lib/shared/projects";
+
+function Section({ section, className = "" }: { section: ProjectSection; className?: string }) {
+  return (
+    <div className={className}>
+      <h3 className="text-lg font-semibold tracking-tight">{section.heading}</h3>
+      {section.paragraphs.map((p) => (
+        <p key={p.slice(0, 32)} className="mt-3 max-w-[36rem] leading-relaxed text-muted">
+          {p}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+/** The only link on a card: the call to action. The card itself is not clickable. */
+function Cta({ project }: { project: PlaygroundProject }) {
+  const className = "focus-ring inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white shadow-sm";
+  const style = { background: "linear-gradient(135deg, var(--accent), var(--accent-end))" };
+  const label = (
+    <>
+      {project.example.cta}
+      <span aria-hidden="true">→</span>
+    </>
+  );
+  return project.href ? (
+    // A static build under /public: a plain link, not client-side navigation.
+    <a href={project.href} className={className} style={style}>
+      {label}
+    </a>
+  ) : (
+    <Link href={`/${project.slug}`} className={className} style={style}>
+      {label}
+    </Link>
+  );
+}
 
 export default function PlaygroundHome() {
   return (
@@ -22,50 +56,39 @@ export default function PlaygroundHome() {
           Some ideas are easier to explore when you can interact with them. This is where I turn questions from my work in AI, product and strategy into tools and demonstrations: some about how software and markets might change, others about decisions teams face today.
         </p>
 
-        <ul className="mt-14 grid gap-5 sm:grid-cols-2">
-          {projects.map((p) => {
-            const cardClass = "card card-lift focus-ring group flex h-full flex-col overflow-hidden";
-            const inner = (
-              <>
-                <div
-                  className="relative h-36 overflow-hidden"
-                  style={{ background: "linear-gradient(110deg, #006d77 0%, #008a98 55%, #007fad 100%)" }}
-                  aria-hidden="true"
+        <ul className="mt-14 space-y-8">
+          {projects.map((p) => (
+            <li key={p.slug}>
+              <article className="card overflow-hidden">
+                {/* Compact header: the question, then the concept and format. Height follows the text. */}
+                <header
+                  className="relative overflow-hidden px-5 py-5 sm:px-8 sm:py-7"
+                  style={{ background: "linear-gradient(110deg, #005f69 0%, #007a88 55%, #006f99 100%)" }}
                 >
-                  <div className="grid-fade absolute inset-0 opacity-60" style={{ filter: "invert(1)" }} />
-                  <div className="absolute bottom-4 left-5 flex items-center gap-2 text-white/90">
-                    <LayersIcon width={22} height={22} />
-                    <span className="text-sm font-medium">Interactive demo</span>
+                  <div className="grid-fade pointer-events-none absolute inset-0 opacity-60" style={{ filter: "invert(1)" }} aria-hidden="true" />
+                  <h2 className="relative text-[1.5rem] font-bold leading-tight tracking-tight text-white sm:text-[1.875rem]">{p.headline}</h2>
+                  <p className="relative mt-2 text-sm font-medium text-white sm:text-base">{p.subtitle}</p>
+                </header>
+
+                <div className="grid gap-8 p-5 sm:p-8 lg:grid-cols-2 lg:gap-12">
+                  <Section section={p.origin} />
+                  <div>
+                    <Section section={p.idea} />
+                    <Section section={p.example} className="mt-8 border-t border-line pt-6" />
+                    <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
+                      <Cta project={p} />
+                      {p.gated && (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted">
+                          <LockIcon width={14} height={14} />
+                          Access required
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <div className="flex flex-1 flex-col p-6">
-                  <h2 className="text-xl font-semibold tracking-tight">{p.name}</h2>
-                  <p className="mt-1 font-medium text-accent">{p.tagline}</p>
-                  <p className="mt-3 text-sm leading-relaxed text-muted">{p.description}</p>
-                  <ProjectTags tags={p.tags} />
-                  <p className="mt-4 text-sm font-semibold">Why this exists</p>
-                  <p className="mt-1 text-sm leading-relaxed text-muted">{p.why}</p>
-                  <span className="mt-auto inline-flex items-center gap-1.5 pt-5 text-sm font-medium transition-transform group-hover:translate-x-1">
-                    Open the demo <ArrowRightIcon width={16} height={16} />
-                  </span>
-                </div>
-              </>
-            );
-            return (
-              <li key={p.slug}>
-                {p.href ? (
-                  // A static build under /public: a plain link, not client-side navigation.
-                  <a href={p.href} className={cardClass}>
-                    {inner}
-                  </a>
-                ) : (
-                  <Link href={`/${p.slug}`} className={cardClass}>
-                    {inner}
-                  </Link>
-                )}
-              </li>
-            );
-          })}
+              </article>
+            </li>
+          ))}
         </ul>
       </div>
     </main>

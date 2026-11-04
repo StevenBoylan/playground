@@ -1,54 +1,109 @@
-/** A fixed vocabulary, so tags can become filters later. */
-export type ProjectTag = "ai" | "software" | "marketing" | "framework" | "product";
-
-export const TAG_LABELS: Record<ProjectTag, string> = {
-  ai: "AI",
-  software: "Software",
-  marketing: "Marketing",
-  framework: "Framework",
-  product: "Product",
-};
+export interface ProjectSection {
+  heading: string;
+  paragraphs: string[];
+}
 
 export interface PlaygroundProject {
   slug: string;
-  name: string;
-  tagline: string;
-  description: string;
+  /** The question shown as the card's headline. */
+  headline: string;
+  /** Concept name and format, shown directly under the headline. */
+  subtitle: string;
+  /** Left column on desktop: "Where the idea came from" or "The starting question". */
+  origin: ProjectSection;
+  /** Right column on desktop. */
+  idea: ProjectSection;
+  /** Follows "The idea" in the right column, with its call to action. */
+  example: ProjectSection & { cta: string };
   /** Set for demos that are static builds under /public rather than Next routes. */
   href?: string;
-  /** Two or three of the vocabulary above. */
-  tags: ProjectTag[];
-  /** Why the author built it: shown on the card as secondary text. */
-  why: string;
+  /** The demo asks for a password, so its call to action carries an "Access required" note. */
+  gated?: boolean;
 }
 
+/** In the order they appear on the landing page. */
 export const projects: PlaygroundProject[] = [
   {
-    slug: "paa",
-    name: "Post-Application Architecture",
-    tagline: "Software without the learning curve.",
-    description:
-      "State an intent. An AI layer chooses authorized capabilities, trusted services run them, and a purpose-built interface is composed on the fly. All companies and data are fictional.",
-    tags: ["framework", "ai", "software"],
-    why: "If AI becomes the starting point for getting things done, how should the software underneath it work? I built this demo to explore the relationship between user intent, permissions, trusted services and the interface someone actually needs. It makes the proposed architecture tangible enough to discuss its benefits, limits and trade-offs.",
+    slug: "lim",
+    href: "/lim",
+    headline: "What happens when customers stop searching?",
+    subtitle: "Latent Intent Marketing · Interactive demo",
+    origin: {
+      heading: "Where the idea came from",
+      paragraphs: [
+        "Colleagues in digital marketing have been sharing their concerns about the significant fall in click-throughs from search results as AI summaries answer queries directly. This got me thinking about what comes next.",
+        "If people increasingly get answers and recommendations from AI without visiting a website, how will businesses reach their next customer? How can established businesses adapt, and where do the next opportunities lie?",
+      ],
+    },
+    idea: {
+      heading: "The idea",
+      paragraphs: [
+        "AI assistants could spot an opportunity before someone explicitly searches for it, then assemble a suitable offer for them to consider. That possibility is the starting point for Latent Intent Marketing.",
+      ],
+    },
+    example: {
+      heading: "Try an example",
+      paragraphs: [
+        "A running enthusiast has recently increased their distance from 7 km to 12 km, has been watching running training videos and has an upcoming long weekend in their calendar.",
+        "Follow this fictional example as their assistants connect these and other signals, identify the possibility of a half-marathon trip, and assemble a suitable offer.",
+      ],
+      cta: "Follow the example",
+    },
   },
   {
-    slug: "lim",
-    name: "LIM Explorer",
-    tagline: "How did this offer come to exist?",
-    description:
-      "An illustrative, fictional walkthrough of Latent Intent Marketing: how permissioned buyer-side agents could arrive at a personalised offer.",
-    href: "/lim",
-    tags: ["framework", "ai", "marketing"],
-    why: "Much of marketing assumes that customers will search, browse or respond to an advert. What changes if their personal agents help identify a need and bring suitable offers to them? I created this walkthrough to make that possibility concrete and explore what businesses would need to do to participate.",
+    slug: "paa",
+    gated: true,
+    headline: "Why use multiple applications to complete one task?",
+    subtitle: "Post-Application Architecture · Interactive demo",
+    origin: {
+      heading: "The starting question",
+      paragraphs: [
+        "Most software asks us to learn its menus, screens and workflows. Completing one task can mean moving between several applications, carrying information from one to another.",
+        "What if we could describe what we wanted to achieve, and the software assembled the tools and interface around that task?",
+        "We’ve spent decades teaching people to understand software, now it’s time to teach software to understand people.",
+      ],
+    },
+    idea: {
+      heading: "The idea",
+      paragraphs: [
+        "AI interprets the request and coordinates a layer of services that carry out the work. Policies and permissions govern which information it can access, which actions it can take and when approval is needed.",
+        "The interface is assembled around the request: the controls, information or dashboard needed to complete the task.",
+      ],
+    },
+    example: {
+      heading: "Explore the demo",
+      paragraphs: [
+        "See how a request becomes a working interface, with AI coordinating the task, services executing actions and policies setting the boundaries.",
+      ],
+      cta: "Explore the demo",
+    },
   },
   {
     slug: "4gates",
-    name: "The Four Gates",
-    tagline: "What earns you the right to move from idea to product.",
-    description:
-      "A self-assessment guide for product teams. Four gates, each asking one question and needing evidence before you move on. Check your own evidence at each stage.",
-    tags: ["framework", "product"],
-    why: "I\u2019ve seen teams move from research to development, or from a promising pilot to scaling, without enough evidence to justify the investment. I\u2019ve made those mistakes too. Four Gates turns those lessons into a practical check: what do we actually know, what remains uncertain, and what is the smallest test worth funding next?",
+    headline: "How do you know your idea is ready for the next step?",
+    subtitle: "The Four Gates · Interactive guide",
+    origin: {
+      heading: "Where the idea came from",
+      paragraphs: [
+        "I’ve seen many teams treat research as proof of demand, a working prototype as proof of a business, and a successful pilot as a reason to scale. I’ve made those mistakes too.",
+        "When you’ve invested time, money and belief in something, it becomes easy to find reasons to keep going. Sometimes, we simply don’t have the evidence, and moving forward too early can become very costly.",
+        "That got me thinking: what evidence should we require before committing more?",
+      ],
+    },
+    idea: {
+      heading: "The idea",
+      paragraphs: [
+        "Four Gates brings together lessons from product development and venture building into four investment decisions: Discovery, MVP, Pilot and Productisation.",
+        "Each gate asks what you can demonstrate before moving forward. When the evidence falls short, the decision might be to run another test, change direction or stop.",
+        "The hardest part is being willing to act on an answer you didn’t want.",
+      ],
+    },
+    example: {
+      heading: "Try it with your own project",
+      paragraphs: [
+        "Choose an idea or product you’re working on and check the evidence you have at each gate. Identify what remains uncertain and the smallest test that could justify the next investment.",
+      ],
+      cta: "Check your evidence",
+    },
   },
 ];
