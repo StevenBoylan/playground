@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { ACCESS_COOKIE, accessEnabled, isValidToken } from "@/lib/shared/access";
 
 /**
- * Keeps the demo behind a password when one is configured. It covers the page and every API route under /api/paa,
+ * Keeps the demo behind a password when one is configured. It covers the PAA page, every API route under /api/paa, and the personal /life page,
  * so the API cannot be called directly to spend credits.
  */
 export function proxy(request: NextRequest) {
@@ -19,5 +19,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/paa/:path*", "/api/paa/:path*"],
+  matcher: ["/paa/:path*", "/api/paa/:path*", "/life/:path*"],
 };

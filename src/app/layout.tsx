@@ -57,7 +57,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </header>
         <div className="flex-1">{children}</div>
         <footer className="print:hidden border-t border-line py-6 text-center text-xs text-muted">
-          All companies and data in these demos are fictional.{" "}
+          All companies and offers in these demos are fictional.{" "}
           <a href="https://github.com/StevenBoylan/playground" className="focus-ring rounded underline underline-offset-2 hover:text-ink">
             Open source on GitHub
           </a>

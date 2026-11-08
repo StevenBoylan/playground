@@ -55,5 +55,5 @@ export function passwordMatches(guess: string): boolean {
 
 /** The only places a visitor may be sent after unlocking, so the unlock link cannot be used to redirect elsewhere. */
 export function safeDestination(requested: string | null | undefined): string {
-  return requested && /^\/paa(\/|$|\?)/.test(requested) && !requested.includes("//") ? requested : "/paa";
+  return requested && /^\/(paa|life)(\/|$|\?)/.test(requested) && !requested.includes("//") ? requested : "/paa";
 }

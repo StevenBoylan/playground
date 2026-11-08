@@ -74,7 +74,8 @@ describe("the redirect after unlocking", () => {
     expect(safeDestination("/paa")).toBe("/paa");
     expect(safeDestination("/paa?x=1")).toBe("/paa?x=1");
     expect(safeDestination("/paa/anything")).toBe("/paa/anything");
-    for (const evil of ["https://evil.example", "//evil.example", "/other", "/paa//evil.example", "/paaa", "", null, undefined]) {
+    expect(safeDestination("/life")).toBe("/life");
+    for (const evil of ["https://evil.example", "//evil.example", "/other", "/paa//evil.example", "/paaa", "/lifeboat", "", null, undefined]) {
       expect(safeDestination(evil), String(evil)).toBe("/paa");
     }
   });
