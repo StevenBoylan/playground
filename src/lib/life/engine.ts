@@ -45,7 +45,7 @@ export function evaluate(data: LifeData, enabled: ReadonlySet<string>): Evaluati
     const missing = parts.filter((p) => !enabled.has(p.flag.sourceId)).map((p) => p.flag);
 
     if (budgetOn && offer.price > data.budgetCap) {
-      withheld.push({ offer, reason: "budget", detail: `Costs £${offer.price}, over the £${data.budgetCap} low-cost limit.` });
+      withheld.push({ offer, reason: "budget", detail: `Costs €${offer.price}, over the €${data.budgetCap} low-cost limit.` });
     } else if (strength < MIN_STRENGTH) {
       const needs = [...new Set(missing.map((f) => sourceName.get(f.sourceId) ?? f.sourceId))].join(", ");
       withheld.push({ offer, reason: "evidence", detail: `Not enough evidence without ${needs}.` });

@@ -6,7 +6,7 @@ import type { Flag, LifeData, Sensitivity } from "@/lib/life/types";
 
 type Tab = "offers" | "behind";
 
-const price = (p: number) => (p === 0 ? "Free" : `£${p}`);
+const price = (p: number) => (p === 0 ? "Free" : `€${p}`);
 
 const SENSITIVITY: Record<Sensitivity, string> = { low: "Low sensitivity", medium: "Medium sensitivity", high: "High sensitivity" };
 
@@ -102,7 +102,7 @@ function OfferCard({ data, item, best, categoryLabel }: { data: LifeData; item: 
         </div>
         <div className="shrink-0 text-right">
           <p className="text-xl font-bold tracking-tight">{price(offer.price)}</p>
-          {offer.was !== undefined && <p className="text-xs text-muted line-through">£{offer.was}</p>}
+          {offer.was !== undefined && <p className="text-xs text-muted line-through">€{offer.was}</p>}
         </div>
       </div>
       <p className="mt-2 text-sm leading-relaxed text-muted">{offer.blurb}</p>
