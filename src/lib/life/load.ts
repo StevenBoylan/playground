@@ -10,7 +10,7 @@ const Schema = z.object({
   budgetCap: z.number().nonnegative(),
   budgetSourceId: z.string(),
   categories: z.array(z.object({ id: z.string(), label: z.string() })).max(12),
-  sources: z.array(z.object({ id: z.string(), name: z.string(), role: z.string(), sees: z.string(), neverSees: z.string() })).max(12),
+  sources: z.array(z.object({ id: z.string(), name: z.string(), role: z.string(), sees: z.string(), neverSees: z.string(), status: z.enum(["connected", "stale", "missing"]).optional(), refreshed: z.string().max(40).optional() })).max(12),
   flags: z.array(z.object({ id: z.string(), sourceId: z.string(), short: z.string(), label: z.string(), sensitivity: Sensitivity, raised: z.boolean().optional() })).max(60),
   intents: z.array(z.object({ id: z.string(), label: z.string(), summary: z.string() })).max(12),
   offers: z
