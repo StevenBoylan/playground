@@ -1,12 +1,42 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { evaluate, MIN_STRENGTH, type ShownOffer } from "@/lib/life/engine";
 import type { Flag, LifeData, Sensitivity } from "@/lib/life/types";
 
 type Tab = "offers" | "behind";
 
+/**
+ * The app has its own look, on purpose: a warm shopping palette inside a phone-style frame, so it reads as a separate
+ * product from the site around it. The tokens below override the Playground's for everything inside the frame, and the
+ * frame stays light whatever the visitor's system theme is.
+ */
+const APP_THEME = {
+  "--bg": "#fff7f0",
+  "--surface": "#ffffff",
+  "--surface-2": "#ffebdd",
+  "--line": "#f1dccb",
+  "--text": "#1f1410",
+  "--muted": "#6b5548",
+  "--accent": "#c2410c",
+  "--accent-end": "#c2410c",
+  "--shadow": "0 1px 2px rgb(120 53 15 / 0.06), 0 8px 22px -12px rgb(120 53 15 / 0.25)",
+  colorScheme: "light",
+} as CSSProperties;
+
+const DEAL = "#ffd43b";
+const CATEGORY_ICON: Record<string, string> = { move: "🏃", recover: "🧖", learn: "🎧", gear: "👟", local: "🌿" };
+const CATEGORY_TINT: Record<string, string> = {
+  move: "linear-gradient(135deg, #ffe3cf, #ffcfa8)",
+  recover: "linear-gradient(135deg, #ffe9d9, #ffd9c2)",
+  learn: "linear-gradient(135deg, #fff0cc, #ffe199)",
+  gear: "linear-gradient(135deg, #ffe0d1, #ffc6ad)",
+  local: "linear-gradient(135deg, #ffecd1, #ffd9a3)",
+};
+
 const price = (p: number) => (p === 0 ? "Free" : `€${p}`);
+const discount = (offer: { price: number; was?: number }) =>
+  offer.was && offer.was > offer.price ? Math.round(((offer.was - offer.price) / offer.was) * 100) : 0;
 
 const SENSITIVITY: Record<Sensitivity, string> = { low: "Low sensitivity", medium: "Medium sensitivity", high: "High sensitivity" };
 
@@ -16,7 +46,7 @@ function SourceSwitches({ data, enabled, onToggle }: { data: LifeData; enabled: 
       {data.sources.map((s) => {
         const on = enabled.has(s.id);
         return (
-          <li key={s.id} className="flex items-start justify-between gap-3 rounded-xl border border-line bg-surface p-3">
+          <li key={s.id} className="flex items-start justify-between gap-3 rounded-2xl border border-line bg-surface p-3">
             <div className="min-w-0">
               <p className="text-sm font-semibold">{s.name}</p>
               <p className="text-xs text-muted">{s.role}</p>
@@ -29,10 +59,7 @@ function SourceSwitches({ data, enabled, onToggle }: { data: LifeData; enabled: 
               onClick={() => onToggle(s.id)}
               className={`focus-ring relative mt-0.5 h-7 w-12 shrink-0 rounded-full border transition-colors ${on ? "border-accent bg-accent" : "border-line bg-surface-2"}`}
             >
-              <span
-                aria-hidden="true"
-                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${on ? "left-[1.35rem]" : "left-0.5 !bg-muted"}`}
-              />
+              <span aria-hidden="true" className={`absolute top-0.5 h-5 w-5 rounded-full shadow transition-all ${on ? "left-[1.35rem] bg-white" : "left-0.5 bg-muted"}`} />
             </button>
           </li>
         );
@@ -44,7 +71,7 @@ function SourceSwitches({ data, enabled, onToggle }: { data: LifeData; enabled: 
 function Trace({ data, item }: { data: LifeData; item: ShownOffer }) {
   const intent = data.intents.find((i) => i.id === item.offer.intentId);
   const sources = [...new Set(item.active.map((f) => data.sources.find((s) => s.id === f.sourceId)?.name ?? f.sourceId))];
-  const steps: { title: string; body: React.ReactNode }[] = [
+  const steps: { title: string; body: ReactNode }[] = [
     { title: "Sources", body: sources.join(", ") },
     {
       title: "Flags raised",
@@ -63,76 +90,82 @@ function Trace({ data, item }: { data: LifeData; item: ShownOffer }) {
     { title: "Offer", body: `${item.offer.title}, ${price(item.offer.price)}, from ${item.offer.merchant}.` },
   ];
   return (
-    <ol className="mt-3 space-y-3 border-t border-line pt-3 text-sm text-muted">
+    <ol className="mt-3 space-y-3 rounded-2xl bg-surface-2 p-3 text-sm text-muted">
       {steps.map((s, i) => (
         <li key={s.title} className="flex gap-3">
           <span aria-hidden="true" className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-white">
             {i + 1}
           </span>
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wide text-ink">{s.title}</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-ink">{s.title}</p>
             <div className="leading-relaxed">{s.body}</div>
           </div>
         </li>
       ))}
-      {item.missing.length > 0 && (
-        <li className="rounded-lg bg-surface-2 p-2 text-xs">
-          Not in the evidence: {item.missing.map((f) => f.short).join(", ")}.
-        </li>
-      )}
+      {item.missing.length > 0 && <li className="rounded-lg bg-surface p-2 text-xs">Not in the evidence: {item.missing.map((f) => f.short).join(", ")}.</li>}
     </ol>
   );
 }
 
-function OfferCard({ data, item, best, categoryLabel }: { data: LifeData; item: ShownOffer; best: boolean; categoryLabel: string }) {
+function DealBadge({ offer }: { offer: { price: number; was?: number } }) {
+  const off = discount(offer);
+  const label = offer.price === 0 ? "FREE" : off > 0 ? `${off}% OFF` : null;
+  if (!label) return null;
+  return (
+    <span className="absolute left-3 top-3 rounded-md px-2 py-1 text-[11px] font-extrabold tracking-wide text-ink shadow-sm" style={{ background: DEAL }}>
+      {label}
+    </span>
+  );
+}
+
+function OfferCard({ data, item, best }: { data: LifeData; item: ShownOffer; best: boolean }) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const { offer } = item;
   const pct = Math.round(item.strength * 100);
   return (
-    <li className="card p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="flex flex-wrap items-center gap-2 text-xs font-medium text-muted">
-            <span className="rounded-full bg-surface-2 px-2 py-0.5">{categoryLabel}</span>
-            {best && <span className="rounded-full px-2 py-0.5 font-semibold text-white" style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-end))" }}>Best match</span>}
+    <li className="card overflow-hidden">
+      <div className="relative flex h-24 items-center justify-center text-5xl" style={{ background: CATEGORY_TINT[offer.categoryId] ?? CATEGORY_TINT.local }} aria-hidden="true">
+        <span>{CATEGORY_ICON[offer.categoryId] ?? "🛍️"}</span>
+        <DealBadge offer={offer} />
+        <span className="absolute right-3 top-3 rounded-full bg-surface px-2 py-1 text-[11px] font-bold text-ink shadow-sm">{pct}% match</span>
+      </div>
+      <div className="p-4">
+        <p className="flex flex-wrap items-center gap-2 text-xs font-semibold text-muted">
+          <span>{offer.merchant}</span>
+          {best && <span className="rounded-md bg-accent px-1.5 py-0.5 text-[11px] font-bold text-white">Top pick</span>}
+        </p>
+        <h3 className="mt-1 text-base font-bold leading-snug">{offer.title}</h3>
+        <p className="mt-1 text-sm leading-relaxed text-muted">{offer.blurb}</p>
+
+        <div className="mt-3 flex items-end justify-between gap-3">
+          <p className="flex items-baseline gap-2">
+            <span className="text-2xl font-extrabold tracking-tight text-accent">{price(offer.price)}</span>
+            {offer.was !== undefined && <span className="text-sm text-muted line-through">€{offer.was}</span>}
           </p>
-          <h3 className="mt-2 text-lg font-semibold leading-snug tracking-tight">{offer.title}</h3>
-          <p className="text-sm text-muted">{offer.merchant}</p>
+          <p className="rounded-full bg-surface-2 px-2.5 py-1 text-xs font-semibold text-ink">⏱ {offer.ends}</p>
         </div>
-        <div className="shrink-0 text-right">
-          <p className="text-xl font-bold tracking-tight">{price(offer.price)}</p>
-          {offer.was !== undefined && <p className="text-xs text-muted line-through">€{offer.was}</p>}
+
+        <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="Why this offer">
+          {item.active.map((f) => (
+            <li key={f.id} className="rounded-full border border-line bg-bg px-2 py-0.5 text-xs text-muted">
+              {f.short}
+            </li>
+          ))}
+        </ul>
+
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={panelId}
+          onClick={() => setOpen((v) => !v)}
+          className="focus-ring mt-4 w-full rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white"
+        >
+          {open ? "Hide why I'm seeing this" : "Why am I seeing this?"}
+        </button>
+        <div id={panelId} hidden={!open}>
+          {open && <Trace data={data} item={item} />}
         </div>
-      </div>
-      <p className="mt-2 text-sm leading-relaxed text-muted">{offer.blurb}</p>
-      <p className="mt-2 text-xs font-medium text-ink">{offer.ends}</p>
-
-      <div className="mt-3 flex items-center gap-2" role="img" aria-label={`Match ${pct} percent`}>
-        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2" aria-hidden="true">
-          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: "linear-gradient(90deg, var(--accent), var(--accent-end))" }} />
-        </div>
-        <span className="text-xs font-semibold tabular-nums text-ink" aria-hidden="true">{pct}%</span>
-      </div>
-
-      <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="Why this offer">
-        {item.active.map((f) => (
-          <li key={f.id} className="rounded-full border border-line px-2 py-0.5 text-xs text-muted">{f.short}</li>
-        ))}
-      </ul>
-
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-controls={panelId}
-        onClick={() => setOpen((v) => !v)}
-        className="focus-ring mt-3 inline-flex items-center gap-1.5 rounded-lg py-1 text-sm font-semibold text-accent"
-      >
-        {open ? "Hide how this was made" : "How was this made?"}
-        <span aria-hidden="true">{open ? "−" : "+"}</span>
-      </button>
-      <div id={panelId} hidden={!open}>
-        {open && <Trace data={data} item={item} />}
       </div>
     </li>
   );
@@ -144,12 +177,18 @@ function FlagGroup({ data, sourceId, enabled }: { data: LifeData; sourceId: stri
   if (!source) return null;
   return (
     <section className={`card p-4 ${enabled ? "" : "opacity-60"}`}>
-      <h4 className="text-sm font-semibold">
+      <h4 className="text-sm font-bold">
         {source.name} <span className="font-normal text-muted">{enabled ? "" : "(off)"}</span>
       </h4>
       <dl className="mt-2 space-y-1 text-xs text-muted">
-        <div><dt className="inline font-semibold text-ink">Reads: </dt><dd className="inline">{source.sees}</dd></div>
-        <div><dt className="inline font-semibold text-ink">Never reads: </dt><dd className="inline">{source.neverSees}</dd></div>
+        <div>
+          <dt className="inline font-semibold text-ink">Reads: </dt>
+          <dd className="inline">{source.sees}</dd>
+        </div>
+        <div>
+          <dt className="inline font-semibold text-ink">Never reads: </dt>
+          <dd className="inline">{source.neverSees}</dd>
+        </div>
       </dl>
       {flags.length === 0 && <p className="mt-3 text-sm text-muted">Nothing raised from this source right now.</p>}
       <ul className="mt-3 space-y-2">
@@ -163,6 +202,23 @@ function FlagGroup({ data, sourceId, enabled }: { data: LifeData; sourceId: stri
     </section>
   );
 }
+
+const TAB_ICON: Record<Tab, ReactNode> = {
+  offers: (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z" />
+      <circle cx="7.5" cy="7.5" r="1.2" fill="currentColor" />
+    </svg>
+  ),
+  behind: (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="6" cy="6" r="2.5" />
+      <circle cx="18" cy="6" r="2.5" />
+      <circle cx="12" cy="18" r="2.5" />
+      <path d="M7.7 7.8 11 15.6M16.3 7.8 13 15.6M8.5 6h7" />
+    </svg>
+  ),
+};
 
 export function LifeApp({ data }: { data: LifeData }) {
   const [tab, setTab] = useState<Tab>("offers");
@@ -181,7 +237,7 @@ export function LifeApp({ data }: { data: LifeData }) {
   const categoryLabel = (id: string) => data.categories.find((c) => c.id === id)?.label ?? id;
   const visible = category === "all" ? shown : shown.filter((s) => s.offer.categoryId === category);
   const tabs: { id: Tab; label: string }[] = [
-    { id: "offers", label: "My offers" },
+    { id: "offers", label: "Offers" },
     { id: "behind", label: "Behind the scenes" },
   ];
 
@@ -192,8 +248,167 @@ export function LifeApp({ data }: { data: LifeData }) {
   };
 
   return (
-    <div>
-      <div role="tablist" aria-label="View" onKeyDown={onTabKey} className="grid grid-cols-2 gap-1 rounded-xl border border-line bg-surface-2 p-1">
+    <div
+      style={APP_THEME}
+      className="mx-auto flex w-full max-w-[26rem] flex-col overflow-hidden bg-bg text-ink sm:rounded-[2.75rem] sm:border-[10px] sm:border-[#1c1410] sm:shadow-[0_30px_60px_-20px_rgb(28_20_16/0.5)] lg:h-[800px]"
+    >
+      {/* App bar. The notch is decoration for the frame, hidden on a real phone. */}
+      <div className="relative shrink-0 bg-bg px-4 pb-3 pt-3 sm:pt-5">
+        <div aria-hidden="true" className="absolute left-1/2 top-1.5 hidden h-5 w-24 -translate-x-1/2 rounded-full bg-[#1c1410] sm:block" />
+        <div className="flex items-center justify-between sm:mt-3">
+          <p className="text-2xl font-extrabold tracking-tight text-accent">
+            nudge<span style={{ color: DEAL, WebkitTextStroke: "0.5px #1f1410" }}>.</span>
+          </p>
+          <p className="rounded-full bg-surface-2 px-3 py-1 text-xs font-semibold text-ink">Picked for me today</p>
+        </div>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-6 [scrollbar-width:thin]">
+        <div id="panel-offers" role="tabpanel" aria-labelledby="tab-offers" hidden={tab !== "offers"}>
+          {tab === "offers" && (
+            <>
+              {shown[0] && category === "all" && (
+                <div className="relative overflow-hidden rounded-3xl p-5 text-white" style={{ background: "linear-gradient(135deg, #b53a09, #d4470e)" }}>
+                  <p className="text-xs font-bold uppercase tracking-widest text-white">Deal of the day</p>
+                  <p className="mt-2 text-xl font-extrabold leading-tight">{shown[0].offer.title}</p>
+                  <p className="mt-1 text-sm text-white">
+                    {shown[0].offer.merchant} · {price(shown[0].offer.price)}
+                    {shown[0].offer.was !== undefined ? ` (was €${shown[0].offer.was})` : ""}
+                  </p>
+                  <p className="mt-3 inline-block rounded-md px-2 py-1 text-xs font-extrabold text-ink" style={{ background: DEAL }}>
+                    {Math.round(shown[0].strength * 100)}% match for me
+                  </p>
+                  <span aria-hidden="true" className="absolute -right-3 -top-3 text-7xl opacity-30">
+                    {CATEGORY_ICON[shown[0].offer.categoryId]}
+                  </span>
+                </div>
+              )}
+
+              <div className="-mx-4 mt-4 overflow-x-auto px-4 pb-1">
+                <ul className="flex w-max gap-2" aria-label="Categories">
+                  {[{ id: "all", label: "All" }, ...data.categories].map((c) => (
+                    <li key={c.id}>
+                      <button
+                        type="button"
+                        aria-pressed={category === c.id}
+                        onClick={() => setCategory(c.id)}
+                        className={`focus-ring flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 py-2 text-sm font-semibold ${
+                          category === c.id ? "border-accent bg-accent text-white" : "border-line bg-surface text-ink"
+                        }`}
+                      >
+                        <span aria-hidden="true">{c.id === "all" ? "✨" : CATEGORY_ICON[c.id]}</span>
+                        {c.label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <details className="mt-4 rounded-2xl border border-line bg-surface p-3">
+                <summary className="focus-ring cursor-pointer rounded text-sm font-bold">
+                  My data sources <span className="font-normal text-muted">({enabled.size} of {data.sources.length} on)</span>
+                </summary>
+                <p className="mt-2 text-xs text-muted">Switch one off and watch the offers that depended on it change.</p>
+                <div className="mt-3">
+                  <SourceSwitches data={data} enabled={enabled} onToggle={toggle} />
+                </div>
+              </details>
+
+              <p className="mt-4 text-sm font-semibold text-muted" aria-live="polite">
+                {visible.length} {visible.length === 1 ? "offer" : "offers"}
+                {category !== "all" ? ` in ${categoryLabel(category)}` : " picked for me"}
+              </p>
+              {visible.length === 0 ? (
+                <p className="card mt-3 p-4 text-sm text-muted">Nothing here has enough evidence behind it right now. Switch a source back on, or try another category.</p>
+              ) : (
+                <ul className="mt-3 space-y-4">
+                  {visible.map((item) => (
+                    <OfferCard key={item.offer.id} data={data} item={item} best={item.offer.id === shown[0]?.offer.id} />
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+        </div>
+
+        <div id="panel-behind" role="tabpanel" aria-labelledby="tab-behind" hidden={tab !== "behind"} className="space-y-8">
+          {tab === "behind" && (
+            <>
+              <section>
+                <h2 className="text-xl font-extrabold tracking-tight">How these offers are made</h2>
+                <ol className="mt-3 space-y-2 text-sm text-muted">
+                  {[
+                    ["Source agents", "One per service. Each reads only what it is allowed to and raises coarse flags."],
+                    ["Flags", "Short statements such as “mileage rising”, never raw records."],
+                    ["Intent agent", "Combines flags from different sources into a latent intent, before I have searched for anything."],
+                    ["Commerce agent", `Builds offers for those intents, and holds back anything that lacks evidence (under ${Math.round(MIN_STRENGTH * 100)}% of it available) or breaks my own rules.`],
+                  ].map(([title, body], i) => (
+                    <li key={title} className="card flex gap-3 p-3">
+                      <span aria-hidden="true" className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-bold text-white">
+                        {i + 1}
+                      </span>
+                      <p>
+                        <span className="font-bold text-ink">{title}.</span> {body}
+                      </p>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+
+              <section>
+                <h2 className="text-xl font-extrabold tracking-tight">Sources</h2>
+                <p className="mt-1 text-sm text-muted">I am in control. Switching a source off removes its flags straight away.</p>
+                <div className="mt-3">
+                  <SourceSwitches data={data} enabled={enabled} onToggle={toggle} />
+                </div>
+              </section>
+
+              <section>
+                <h2 className="text-xl font-extrabold tracking-tight">Flags raised</h2>
+                <div className="mt-3 space-y-3">
+                  {data.sources.map((s) => (
+                    <FlagGroup key={s.id} data={data} sourceId={s.id} enabled={enabled.has(s.id)} />
+                  ))}
+                </div>
+              </section>
+
+              <section>
+                <h2 className="text-xl font-extrabold tracking-tight">Intents inferred</h2>
+                <ul className="mt-3 space-y-2">
+                  {data.intents.map((i) => (
+                    <li key={i.id} className="card p-3 text-sm">
+                      <p className="font-bold">{i.label}</p>
+                      <p className="mt-1 text-muted">{i.summary}</p>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+
+              <section>
+                <h2 className="text-xl font-extrabold tracking-tight">Held back</h2>
+                <p className="mt-1 text-sm text-muted">Offers the commerce agent built but did not show, and why.</p>
+                {withheld.length === 0 ? (
+                  <p className="card mt-3 p-3 text-sm text-muted">Nothing is being held back.</p>
+                ) : (
+                  <ul className="mt-3 space-y-2">
+                    {withheld.map((w) => (
+                      <li key={w.offer.id} className="card p-3 text-sm">
+                        <p className="font-bold">
+                          {w.offer.title} <span className="font-normal text-muted">· {price(w.offer.price)}</span>
+                        </p>
+                        <p className="mt-1 text-muted">{w.detail}</p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom tab bar, as in a shopping app. */}
+      <div role="tablist" aria-label="View" onKeyDown={onTabKey} className="sticky bottom-0 z-10 grid shrink-0 grid-cols-2 border-t border-line bg-surface sm:static">
         {tabs.map((t) => (
           <button
             key={t.id}
@@ -204,120 +419,12 @@ export function LifeApp({ data }: { data: LifeData }) {
             aria-controls={`panel-${t.id}`}
             tabIndex={tab === t.id ? 0 : -1}
             onClick={() => setTab(t.id)}
-            className={`focus-ring rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${tab === t.id ? "bg-surface text-ink shadow-sm" : "text-muted"}`}
+            className={`focus-ring flex flex-col items-center gap-0.5 px-3 pb-4 pt-2.5 text-xs font-bold sm:pb-5 ${tab === t.id ? "text-accent" : "text-muted"}`}
           >
+            {TAB_ICON[t.id]}
             {t.label}
           </button>
         ))}
-      </div>
-
-      <div id="panel-offers" role="tabpanel" aria-labelledby="tab-offers" hidden={tab !== "offers"} className="mt-5">
-        {tab === "offers" && (
-          <>
-            <div className="-mx-4 overflow-x-auto px-4 pb-1">
-              <ul className="flex w-max gap-2" aria-label="Categories">
-                {[{ id: "all", label: "All" }, ...data.categories].map((c) => (
-                  <li key={c.id}>
-                    <button
-                      type="button"
-                      aria-pressed={category === c.id}
-                      onClick={() => setCategory(c.id)}
-                      className={`focus-ring whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm font-medium ${category === c.id ? "border-accent bg-accent text-white" : "border-line bg-surface text-muted"}`}
-                    >
-                      {c.label}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <details className="mt-4 rounded-xl border border-line bg-surface p-3">
-              <summary className="focus-ring cursor-pointer rounded text-sm font-semibold">
-                Data sources <span className="font-normal text-muted">({enabled.size} of {data.sources.length} on)</span>
-              </summary>
-              <p className="mt-2 text-xs text-muted">Switch one off and watch the offers that depended on it change.</p>
-              <div className="mt-3"><SourceSwitches data={data} enabled={enabled} onToggle={toggle} /></div>
-            </details>
-
-            <p className="mt-4 text-sm text-muted" aria-live="polite">
-              {visible.length} {visible.length === 1 ? "offer" : "offers"} picked for me{category !== "all" ? ` in ${categoryLabel(category)}` : ""}.
-            </p>
-            {visible.length === 0 ? (
-              <p className="card mt-3 p-4 text-sm text-muted">Nothing here has enough evidence behind it right now. Switch a source back on, or try another category.</p>
-            ) : (
-              <ul className="mt-3 space-y-4">
-                {visible.map((item) => (
-                  <OfferCard key={item.offer.id} data={data} item={item} best={item.offer.id === shown[0]?.offer.id} categoryLabel={categoryLabel(item.offer.categoryId)} />
-                ))}
-              </ul>
-            )}
-          </>
-        )}
-      </div>
-
-      <div id="panel-behind" role="tabpanel" aria-labelledby="tab-behind" hidden={tab !== "behind"} className="mt-5 space-y-8">
-        {tab === "behind" && (
-          <>
-            <section>
-              <h2 className="text-xl font-semibold tracking-tight">How these offers are made</h2>
-              <ol className="mt-3 space-y-2 text-sm text-muted">
-                {[
-                  ["Source agents", "One per service. Each reads only what it is allowed to and raises coarse flags."],
-                  ["Flags", "Short statements such as “mileage rising”, never raw records."],
-                  ["Intent agent", "Combines flags from different sources into a latent intent, before I have searched for anything."],
-                  ["Commerce agent", `Builds offers for those intents, and holds back anything that lacks evidence (under ${Math.round(MIN_STRENGTH * 100)}% of it available) or breaks my own rules.`],
-                ].map(([title, body], i) => (
-                  <li key={title} className="card flex gap-3 p-3">
-                    <span aria-hidden="true" className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-bold text-white">{i + 1}</span>
-                    <p><span className="font-semibold text-ink">{title}.</span> {body}</p>
-                  </li>
-                ))}
-              </ol>
-            </section>
-
-            <section>
-              <h2 className="text-xl font-semibold tracking-tight">Sources</h2>
-              <p className="mt-1 text-sm text-muted">I am in control. Switching a source off removes its flags straight away.</p>
-              <div className="mt-3"><SourceSwitches data={data} enabled={enabled} onToggle={toggle} /></div>
-            </section>
-
-            <section>
-              <h2 className="text-xl font-semibold tracking-tight">Flags raised</h2>
-              <div className="mt-3 space-y-3">
-                {data.sources.map((s) => <FlagGroup key={s.id} data={data} sourceId={s.id} enabled={enabled.has(s.id)} />)}
-              </div>
-            </section>
-
-            <section>
-              <h2 className="text-xl font-semibold tracking-tight">Intents inferred</h2>
-              <ul className="mt-3 space-y-2">
-                {data.intents.map((i) => (
-                  <li key={i.id} className="card p-3 text-sm">
-                    <p className="font-semibold">{i.label}</p>
-                    <p className="mt-1 text-muted">{i.summary}</p>
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            <section>
-              <h2 className="text-xl font-semibold tracking-tight">Held back</h2>
-              <p className="mt-1 text-sm text-muted">Offers the commerce agent built but did not show, and why.</p>
-              {withheld.length === 0 ? (
-                <p className="card mt-3 p-3 text-sm text-muted">Nothing is being held back.</p>
-              ) : (
-                <ul className="mt-3 space-y-2">
-                  {withheld.map((w) => (
-                    <li key={w.offer.id} className="card p-3 text-sm">
-                      <p className="font-semibold">{w.offer.title} <span className="font-normal text-muted">· {price(w.offer.price)}</span></p>
-                      <p className="mt-1 text-muted">{w.detail}</p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          </>
-        )}
       </div>
     </div>
   );
