@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { LifeApp } from "@/components/life/LifeApp";
-import { SourcesPanel } from "@/components/life/SourcesPanel";
 import { loadLifeData } from "@/lib/life/load";
 
 export const metadata: Metadata = {
@@ -21,8 +20,8 @@ export default function LifePage() {
   return (
     <main className="relative">
       <div className="grid-fade pointer-events-none absolute inset-x-0 top-0 h-[320px]" aria-hidden="true" />
-      <div className="relative mx-auto grid w-full max-w-5xl grid-cols-[minmax(0,1fr)] gap-10 px-4 pb-20 pt-8 sm:pt-12 lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-start lg:gap-x-16">
-        <div className="lg:col-start-1 lg:row-start-1 lg:pt-6">
+      <div className="relative mx-auto grid w-full max-w-5xl grid-cols-[minmax(0,1fr)] gap-10 px-4 pb-20 pt-8 sm:pt-12 lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-start lg:gap-16">
+        <div className="lg:pt-6">
           <p className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/70 px-3 py-1 text-xs font-medium text-muted backdrop-blur">
             <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
             Latent Intent Marketing · Live example
@@ -40,12 +39,7 @@ export default function LifePage() {
             ))}
           </ol>
         </div>
-        <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
-          <LifeApp data={lifeData} />
-        </div>
-        <div className="lg:col-start-1 lg:row-start-2">
-          <SourcesPanel data={lifeData} />
-        </div>
+        <LifeApp data={lifeData} />
       </div>
     </main>
   );

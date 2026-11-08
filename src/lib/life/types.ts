@@ -9,10 +9,6 @@ export interface Source {
   sees: string;
   /** What it never reads, even though the service holds it. */
   neverSees: string;
-  /** How the source stands in this export. Absent means the illustrative sample. */
-  status?: "connected" | "stale" | "missing";
-  /** When the source was last read, as a short readable date. */
-  refreshed?: string;
 }
 
 /** A signal a source agent raises. Always a coarse statement, never a raw record. */
