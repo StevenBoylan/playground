@@ -77,7 +77,7 @@ function Trace({ data, item }: { data: LifeData; item: ShownOffer }) {
       ))}
       {item.missing.length > 0 && (
         <li className="rounded-lg bg-surface-2 p-2 text-xs">
-          Weaker without: {item.missing.map((f) => f.short).join(", ")}.
+          Not in the evidence: {item.missing.map((f) => f.short).join(", ")}.
         </li>
       )}
     </ol>
@@ -140,7 +140,7 @@ function OfferCard({ data, item, best, categoryLabel }: { data: LifeData; item: 
 
 function FlagGroup({ data, sourceId, enabled }: { data: LifeData; sourceId: string; enabled: boolean }) {
   const source = data.sources.find((s) => s.id === sourceId);
-  const flags = data.flags.filter((f) => f.sourceId === sourceId);
+  const flags = data.flags.filter((f) => f.sourceId === sourceId && f.raised !== false);
   if (!source) return null;
   return (
     <section className={`card p-4 ${enabled ? "" : "opacity-60"}`}>
@@ -151,6 +151,7 @@ function FlagGroup({ data, sourceId, enabled }: { data: LifeData; sourceId: stri
         <div><dt className="inline font-semibold text-ink">Reads: </dt><dd className="inline">{source.sees}</dd></div>
         <div><dt className="inline font-semibold text-ink">Never reads: </dt><dd className="inline">{source.neverSees}</dd></div>
       </dl>
+      {flags.length === 0 && <p className="mt-3 text-sm text-muted">Nothing raised from this source right now.</p>}
       <ul className="mt-3 space-y-2">
         {flags.map((f: Flag) => (
           <li key={f.id} className="rounded-lg bg-surface-2 p-2 text-sm">

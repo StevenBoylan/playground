@@ -39,16 +39,17 @@ export function evaluate(data: LifeData, enabled: ReadonlySet<string>): Evaluati
       return flag ? [{ flag, weight: ref.weight }] : [];
     });
     const total = parts.reduce((sum, p) => sum + p.weight, 0);
-    const live = parts.filter((p) => enabled.has(p.flag.sourceId));
+    const live = parts.filter((p) => enabled.has(p.flag.sourceId) && p.flag.raised !== false);
     const strength = total > 0 ? live.reduce((sum, p) => sum + p.weight, 0) / total : 0;
     const active = live.map((p) => p.flag);
-    const missing = parts.filter((p) => !enabled.has(p.flag.sourceId)).map((p) => p.flag);
+    const missing = parts.filter((p) => !live.includes(p)).map((p) => p.flag);
 
     if (budgetOn && offer.price > data.budgetCap) {
       withheld.push({ offer, reason: "budget", detail: `Costs €${offer.price}, over the €${data.budgetCap} low-cost limit.` });
     } else if (strength < MIN_STRENGTH) {
-      const needs = [...new Set(missing.map((f) => sourceName.get(f.sourceId) ?? f.sourceId))].join(", ");
-      withheld.push({ offer, reason: "evidence", detail: `Not enough evidence without ${needs}.` });
+      const off = [...new Set(missing.filter((f) => !enabled.has(f.sourceId)).map((f) => sourceName.get(f.sourceId) ?? f.sourceId))];
+      const detail = off.length > 0 ? `Not enough evidence without ${off.join(", ")}.` : "Not enough supporting signals were raised.";
+      withheld.push({ offer, reason: "evidence", detail });
     } else {
       shown.push({ offer, strength, active, missing });
     }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { LifeApp } from "@/components/life/LifeApp";
-import { lifeData } from "@/lib/life/data";
+import { loadLifeData } from "@/lib/life/load";
 
 export const metadata: Metadata = {
   title: "My life offers | Playground",
@@ -9,6 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default function LifePage() {
+  const lifeData = loadLifeData();
   return (
     <main className="relative">
       <div className="grid-fade pointer-events-none absolute inset-x-0 top-0 h-[320px]" aria-hidden="true" />

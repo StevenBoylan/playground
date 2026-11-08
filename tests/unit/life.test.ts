@@ -51,3 +51,30 @@ describe("evaluating offers", () => {
     expect([...strengths].sort((a, b) => b - a)).toEqual(strengths);
   });
 });
+
+describe("loading exported life data", () => {
+  const encode = (v: unknown) => Buffer.from(JSON.stringify(v)).toString("base64");
+
+  it("accepts a well-formed export", async () => {
+    const { parseLifeData } = await import("@/lib/life/load");
+    expect(parseLifeData(encode(lifeData))?.offers).toHaveLength(lifeData.offers.length);
+  });
+
+  it("returns nothing for missing, malformed or wrongly shaped input, so the page falls back", async () => {
+    const { parseLifeData } = await import("@/lib/life/load");
+    for (const bad of [undefined, "", "not base64 json", encode({}), encode({ ...lifeData, offers: "nope" })]) {
+      expect(parseLifeData(bad), String(bad).slice(0, 20)).toBeUndefined();
+    }
+  });
+});
+
+describe("flags the source agents did not raise", () => {
+  it("count as missing evidence instead of disappearing from the sum", () => {
+    const data = { ...lifeData, flags: lifeData.flags.map((f) => (f.sourceId === "calendar" ? { ...f, raised: false } : f)) };
+    const result = evaluate(data, all());
+    const walk = result.withheld.find((w) => w.offer.id === "o-walk");
+    expect(walk?.reason).toBe("evidence");
+    expect(walk?.detail).toBe("Not enough supporting signals were raised.");
+    expect(result.shown.find((s) => s.offer.id === "o-walk")).toBeUndefined();
+  });
+});

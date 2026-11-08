@@ -20,6 +20,8 @@ export interface Flag {
   /** The full statement the source agent produced. */
   label: string;
   sensitivity: Sensitivity;
+  /** False when the source agent looked and did not raise this flag. Absent means raised. */
+  raised?: boolean;
 }
 
 export interface Intent {
