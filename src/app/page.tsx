@@ -66,8 +66,11 @@ export default function PlaygroundHome() {
                   style={{ background: "linear-gradient(110deg, #005f69 0%, #007a88 55%, #006f99 100%)" }}
                 >
                   <div className="grid-fade pointer-events-none absolute inset-0 opacity-60" style={{ filter: "invert(1)" }} aria-hidden="true" />
-                  <h2 className="relative text-xl font-bold leading-tight tracking-tight text-white sm:text-2xl">{p.headline}</h2>
-                  <p className="relative mt-2 text-sm font-medium text-white sm:text-base">{p.subtitle}</p>
+                  <h2 className="relative text-xl font-bold leading-tight tracking-tight text-white sm:text-2xl">
+                    {p.subtitle.split(" · ")[0]}
+                    <span className="ml-2 text-sm font-medium text-white/80 sm:text-base">· {p.subtitle.split(" · ")[1]}</span>
+                  </h2>
+                  <p className="relative mt-2 text-sm font-medium text-white sm:text-base">{p.headline}</p>
                 </header>
 
                 <div className="grid gap-6 p-5 sm:p-6 md:grid-cols-2 md:gap-10">
