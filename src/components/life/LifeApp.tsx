@@ -25,13 +25,12 @@ const APP_THEME = {
 } as CSSProperties;
 
 const DEAL = "#ffd43b";
-const CATEGORY_ICON: Record<string, string> = { move: "🏃", recover: "🧖", learn: "🎧", gear: "👟", local: "🌿" };
+/** The offer the banner leads with: the one that comes from several signals converging. */
+const FEATURED_OFFER = "o-cyprus";
+const CATEGORY_ICON: Record<string, string> = { trip: "✈️", move: "🏃" };
 const CATEGORY_TINT: Record<string, string> = {
+  trip: "linear-gradient(135deg, #ffe9d9, #ffc9a3)",
   move: "linear-gradient(135deg, #ffe3cf, #ffcfa8)",
-  recover: "linear-gradient(135deg, #ffe9d9, #ffd9c2)",
-  learn: "linear-gradient(135deg, #fff0cc, #ffe199)",
-  gear: "linear-gradient(135deg, #ffe0d1, #ffc6ad)",
-  local: "linear-gradient(135deg, #ffecd1, #ffd9a3)",
 };
 
 const price = (p: number) => (p === 0 ? "Free" : `€${p}`);
@@ -107,6 +106,41 @@ function Trace({ data, item }: { data: LifeData; item: ShownOffer }) {
   );
 }
 
+/** How the evidence behind an offer built up, week by week, from when each signal first appeared. */
+function EvidenceBuild({ item }: { item: ShownOffer }) {
+  const total = item.active.reduce((n, f) => n + (f.weeksAgo === undefined ? 0 : 1), 0);
+  if (total < 2) return null;
+  const weights = new Map(item.offer.flags.map((r) => [r.flagId, r.weight]));
+  const all = item.active.map((f) => ({ f, w: weights.get(f.id) ?? 0 }));
+  const sum = all.reduce((n, a) => n + a.w, 0);
+  const start = Math.max(...all.map((a) => a.f.weeksAgo ?? 0));
+  const points = Array.from({ length: start + 1 }, (_, i) => {
+    const weeksAgo = start - i;
+    const share = all.filter((a) => (a.f.weeksAgo ?? 0) >= weeksAgo).reduce((n, a) => n + a.w, 0) / (sum || 1);
+    return { weeksAgo, pct: Math.round(share * item.strength * 100) };
+  });
+  return (
+    <div className="mt-3 rounded-2xl bg-surface-2 p-3">
+      <p className="text-xs font-bold uppercase tracking-wide text-ink">Your intent building over {start} weeks</p>
+      <div className="mt-2 flex h-16 items-end gap-1" role="img" aria-label={`Match rising from ${points[0].pct}% to ${points[points.length - 1].pct}%`}>
+        {points.map((p) => (
+          <div key={p.weeksAgo} className="flex-1 rounded-t bg-accent" style={{ height: `${Math.max(p.pct, 4)}%`, opacity: 0.35 + p.pct / 160 }} title={`${p.weeksAgo === 0 ? "Now" : `${p.weeksAgo} weeks ago`}: ${p.pct}%`} />
+        ))}
+      </div>
+      <ul className="mt-2 space-y-0.5 text-xs text-muted">
+        {[...item.active]
+          .filter((f) => f.weeksAgo !== undefined)
+          .sort((a, b) => (b.weeksAgo ?? 0) - (a.weeksAgo ?? 0))
+          .map((f) => (
+            <li key={f.id}>
+              <span className="font-semibold text-ink">{f.weeksAgo === 0 ? "Now" : `${f.weeksAgo} wk ago`}</span> · {f.short}
+            </li>
+          ))}
+      </ul>
+    </div>
+  );
+}
+
 function DealBadge({ offer }: { offer: { price: number; was?: number } }) {
   const off = discount(offer);
   const label = offer.price === 0 ? "FREE" : off > 0 ? `${off}% OFF` : null;
@@ -125,7 +159,7 @@ function OfferCard({ data, item, best }: { data: LifeData; item: ShownOffer; bes
   const pct = Math.round(item.strength * 100);
   return (
     <li className="card overflow-hidden">
-      <div className="relative flex h-24 items-center justify-center text-5xl" style={{ background: CATEGORY_TINT[offer.categoryId] ?? CATEGORY_TINT.local }} aria-hidden="true">
+      <div className="relative flex h-24 items-center justify-center text-5xl" style={{ background: CATEGORY_TINT[offer.categoryId] ?? CATEGORY_TINT.move }} aria-hidden="true">
         <span>{CATEGORY_ICON[offer.categoryId] ?? "🛍️"}</span>
         <DealBadge offer={offer} />
         <span className="absolute right-3 top-3 rounded-full bg-surface px-2 py-1 text-[11px] font-bold text-ink shadow-sm">{pct}% match</span>
@@ -146,6 +180,13 @@ function OfferCard({ data, item, best }: { data: LifeData; item: ShownOffer; bes
           <p className="rounded-full bg-surface-2 px-2.5 py-1 text-xs font-semibold text-ink">⏱ {offer.ends}</p>
         </div>
 
+        {item.held && (
+          <p className="mt-3 rounded-xl border border-line bg-surface-2 p-2.5 text-xs leading-relaxed text-ink">
+            <span className="font-bold">Finance agent:</span> {item.held}
+          </p>
+        )}
+        <EvidenceBuild item={item} />
+
         <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="Why this offer">
           {item.active.map((f) => (
             <li key={f.id} className="rounded-full border border-line bg-bg px-2 py-0.5 text-xs text-muted">
@@ -161,7 +202,7 @@ function OfferCard({ data, item, best }: { data: LifeData; item: ShownOffer; bes
           onClick={() => setOpen((v) => !v)}
           className="focus-ring mt-4 w-full rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white"
         >
-          {open ? "Hide why I'm seeing this" : "Why am I seeing this?"}
+          {open ? "Hide why you're seeing this" : "Why you're seeing this"}
         </button>
         <div id={panelId} hidden={!open}>
           {open && <Trace data={data} item={item} />}
@@ -222,7 +263,6 @@ const TAB_ICON: Record<Tab, ReactNode> = {
 
 export function LifeApp({ data }: { data: LifeData }) {
   const [tab, setTab] = useState<Tab>("offers");
-  const [category, setCategory] = useState<string>("all");
   const [enabled, setEnabled] = useState<ReadonlySet<string>>(() => new Set(data.sources.map((s) => s.id)));
 
   const toggle = (id: string) =>
@@ -234,8 +274,8 @@ export function LifeApp({ data }: { data: LifeData }) {
     });
 
   const { shown, withheld } = useMemo(() => evaluate(data, enabled), [data, enabled]);
-  const categoryLabel = (id: string) => data.categories.find((c) => c.id === id)?.label ?? id;
-  const visible = category === "all" ? shown : shown.filter((s) => s.offer.categoryId === category);
+  const visible = shown;
+  const featured = shown.find((s) => s.offer.id === FEATURED_OFFER) ?? shown[0];
   const tabs: { id: Tab; label: string }[] = [
     { id: "offers", label: "Offers" },
     { id: "behind", label: "Behind the scenes" },
@@ -259,7 +299,7 @@ export function LifeApp({ data }: { data: LifeData }) {
           <p className="text-2xl font-extrabold tracking-tight text-accent">
             nudge<span style={{ color: DEAL, WebkitTextStroke: "0.5px #1f1410" }}>.</span>
           </p>
-          <p className="rounded-full bg-surface-2 px-3 py-1 text-xs font-semibold text-ink">Picked for me today</p>
+          <p className="rounded-full bg-surface-2 px-3 py-1 text-xs font-semibold text-ink">Picked for you</p>
         </div>
       </div>
 
@@ -267,46 +307,26 @@ export function LifeApp({ data }: { data: LifeData }) {
         <div id="panel-offers" role="tabpanel" aria-labelledby="tab-offers" hidden={tab !== "offers"}>
           {tab === "offers" && (
             <>
-              {shown[0] && category === "all" && (
+              {featured && (
                 <div className="relative overflow-hidden rounded-3xl p-5 text-white" style={{ background: "linear-gradient(135deg, #b53a09, #d4470e)" }}>
-                  <p className="text-xs font-bold uppercase tracking-widest text-white">Deal of the day</p>
-                  <p className="mt-2 text-xl font-extrabold leading-tight">{shown[0].offer.title}</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-white">New offer for you</p>
+                  <p className="mt-2 text-xl font-extrabold leading-tight">{featured.offer.title}</p>
                   <p className="mt-1 text-sm text-white">
-                    {shown[0].offer.merchant} · {price(shown[0].offer.price)}
-                    {shown[0].offer.was !== undefined ? ` (was €${shown[0].offer.was})` : ""}
+                    {featured.offer.merchant} · {price(featured.offer.price)}
+                    {featured.offer.was !== undefined ? ` (was €${featured.offer.was})` : ""}
                   </p>
                   <p className="mt-3 inline-block rounded-md px-2 py-1 text-xs font-extrabold text-ink" style={{ background: DEAL }}>
-                    {Math.round(shown[0].strength * 100)}% match for me
+                    {Math.round(featured.strength * 100)}% match for you
                   </p>
                   <span aria-hidden="true" className="absolute -right-3 -top-3 text-7xl opacity-30">
-                    {CATEGORY_ICON[shown[0].offer.categoryId]}
+                    {CATEGORY_ICON[featured.offer.categoryId]}
                   </span>
                 </div>
               )}
 
-              <div className="-mx-4 mt-4 overflow-x-auto px-4 pb-1">
-                <ul className="flex w-max gap-2" aria-label="Categories">
-                  {[{ id: "all", label: "All" }, ...data.categories].map((c) => (
-                    <li key={c.id}>
-                      <button
-                        type="button"
-                        aria-pressed={category === c.id}
-                        onClick={() => setCategory(c.id)}
-                        className={`focus-ring flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 py-2 text-sm font-semibold ${
-                          category === c.id ? "border-accent bg-accent text-white" : "border-line bg-surface text-ink"
-                        }`}
-                      >
-                        <span aria-hidden="true">{c.id === "all" ? "✨" : CATEGORY_ICON[c.id]}</span>
-                        {c.label}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
               <details className="mt-4 rounded-2xl border border-line bg-surface p-3">
                 <summary className="focus-ring cursor-pointer rounded text-sm font-bold">
-                  My data sources <span className="font-normal text-muted">({enabled.size} of {data.sources.length} on)</span>
+                  Your data sources <span className="font-normal text-muted">({enabled.size} of {data.sources.length} on)</span>
                 </summary>
                 <p className="mt-2 text-xs text-muted">Switch one off and watch the offers that depended on it change.</p>
                 <div className="mt-3">
@@ -315,11 +335,10 @@ export function LifeApp({ data }: { data: LifeData }) {
               </details>
 
               <p className="mt-4 text-sm font-semibold text-muted" aria-live="polite">
-                {visible.length} {visible.length === 1 ? "offer" : "offers"}
-                {category !== "all" ? ` in ${categoryLabel(category)}` : " picked for me"}
+                {visible.length} {visible.length === 1 ? "offer" : "offers"} picked for you
               </p>
               {visible.length === 0 ? (
-                <p className="card mt-3 p-4 text-sm text-muted">Nothing here has enough evidence behind it right now. Switch a source back on, or try another category.</p>
+                <p className="card mt-3 p-4 text-sm text-muted">Nothing here has enough evidence behind it right now. Switch a source back on.</p>
               ) : (
                 <ul className="mt-3 space-y-4">
                   {visible.map((item) => (
@@ -340,8 +359,8 @@ export function LifeApp({ data }: { data: LifeData }) {
                   {[
                     ["Source agents", "One per service. Each reads only what it is allowed to and raises coarse flags."],
                     ["Flags", "Short statements such as “mileage rising”, never raw records."],
-                    ["Intent agent", "Combines flags from different sources into a latent intent, before I have searched for anything."],
-                    ["Commerce agent", `Builds offers for those intents, and holds back anything that lacks evidence (under ${Math.round(MIN_STRENGTH * 100)}% of it available) or breaks my own rules.`],
+                    ["Intent agent", "Combines flags from different sources into a latent intent, before you have searched for anything."],
+                    ["Commerce agent", `Builds offers for those intents, and holds back anything that lacks evidence (under ${Math.round(MIN_STRENGTH * 100)}% of it available) or breaks the rules you set.`],
                   ].map(([title, body], i) => (
                     <li key={title} className="card flex gap-3 p-3">
                       <span aria-hidden="true" className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-bold text-white">
@@ -357,7 +376,7 @@ export function LifeApp({ data }: { data: LifeData }) {
 
               <section>
                 <h2 className="text-xl font-extrabold tracking-tight">Sources</h2>
-                <p className="mt-1 text-sm text-muted">I am in control. Switching a source off removes its flags straight away.</p>
+                <p className="mt-1 text-sm text-muted">You are in control. Switching a source off removes its flags straight away.</p>
                 <div className="mt-3">
                   <SourceSwitches data={data} enabled={enabled} onToggle={toggle} />
                 </div>

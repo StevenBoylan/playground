@@ -15,6 +15,8 @@ export interface PlaygroundProject {
   idea: ProjectSection;
   /** Follows "The idea" in the right column, with its call to action. */
   example: ProjectSection & { cta: string };
+  /** Where the card's button goes when it is not `/<slug>`: an explainer page that sits in front of a gated demo. */
+  intro?: string;
   /** Set for demos that are static builds under /public rather than Next routes. */
   href?: string;
   /** The demo asks for a password, so its call to action carries an "Access required" note. */
@@ -26,6 +28,7 @@ export const projects: PlaygroundProject[] = [
   {
     slug: "lim",
     href: "/lim",
+    intro: "/life",
     headline: "What happens when customers stop searching?",
     subtitle: "Latent Intent Marketing · Interactive demo",
     origin: {
@@ -47,11 +50,12 @@ export const projects: PlaygroundProject[] = [
         "A running enthusiast has recently increased their distance from 7 km to 12 km, has been watching running training videos and has an upcoming long weekend in their calendar.",
         "Follow this fictional example as their assistants connect these and other signals, identify the possibility of a half-marathon trip, and assemble a suitable offer.",
       ],
-      cta: "Follow the example",
+      cta: "Find out more",
     },
   },
   {
     slug: "paa",
+    intro: "/paa-concept",
     gated: true,
     headline: "Why use multiple applications to complete one task?",
     subtitle: "Post-Application Architecture · Interactive demo",
@@ -75,7 +79,7 @@ export const projects: PlaygroundProject[] = [
       paragraphs: [
         "See how a request becomes a working interface, with AI coordinating the task, services executing actions and policies setting the boundaries.",
       ],
-      cta: "Explore the demo",
+      cta: "Find out more",
     },
   },
   {

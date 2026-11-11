@@ -5,9 +5,9 @@ import { projects, type PlaygroundProject, type ProjectSection } from "@/lib/sha
 function Section({ section, className = "" }: { section: ProjectSection; className?: string }) {
   return (
     <div className={className}>
-      <h3 className="text-lg font-semibold tracking-tight">{section.heading}</h3>
+      <h3 className="text-base font-semibold tracking-tight">{section.heading}</h3>
       {section.paragraphs.map((p) => (
-        <p key={p.slice(0, 32)} className="mt-3 max-w-[36rem] leading-relaxed text-muted">
+        <p key={p.slice(0, 32)} className="mt-2 max-w-[36rem] leading-relaxed text-muted">
           {p}
         </p>
       ))}
@@ -25,13 +25,13 @@ function Cta({ project }: { project: PlaygroundProject }) {
       <span aria-hidden="true">→</span>
     </>
   );
-  return project.href ? (
+  return project.href && !project.intro ? (
     // A static build under /public: a plain link, not client-side navigation.
     <a href={project.href} className={className} style={style}>
       {label}
     </a>
   ) : (
-    <Link href={`/${project.slug}`} className={className} style={style}>
+    <Link href={project.intro ?? `/${project.slug}`} className={className} style={style}>
       {label}
     </Link>
   );
@@ -62,29 +62,27 @@ export default function PlaygroundHome() {
               <article className="card overflow-hidden">
                 {/* Compact header: the question, then the concept and format. Height follows the text. */}
                 <header
-                  className="relative overflow-hidden px-5 py-5 sm:px-8 sm:py-7"
+                  className="relative overflow-hidden px-5 py-4 sm:px-6 sm:py-5"
                   style={{ background: "linear-gradient(110deg, #005f69 0%, #007a88 55%, #006f99 100%)" }}
                 >
                   <div className="grid-fade pointer-events-none absolute inset-0 opacity-60" style={{ filter: "invert(1)" }} aria-hidden="true" />
-                  <h2 className="relative text-[1.5rem] font-bold leading-tight tracking-tight text-white sm:text-[1.875rem]">{p.headline}</h2>
+                  <h2 className="relative text-xl font-bold leading-tight tracking-tight text-white sm:text-2xl">{p.headline}</h2>
                   <p className="relative mt-2 text-sm font-medium text-white sm:text-base">{p.subtitle}</p>
                 </header>
 
-                <div className="grid gap-8 p-5 sm:p-8 lg:grid-cols-2 lg:gap-12">
+                <div className="grid gap-6 p-5 sm:p-6 md:grid-cols-2 md:gap-10">
                   <Section section={p.origin} />
-                  <div>
-                    <Section section={p.idea} />
-                    <Section section={p.example} className="mt-8 border-t border-line pt-6" />
-                    <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
-                      <Cta project={p} />
-                      {p.gated && (
-                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted">
-                          <LockIcon width={14} height={14} />
-                          Access required
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                  <Section section={p.idea} />
+                </div>
+                {/* Full-width row: the only link on the card. */}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line px-5 py-4 sm:px-6">
+                  <Cta project={p} />
+                  {p.gated && (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted">
+                      <LockIcon width={14} height={14} />
+                      Access required
+                    </span>
+                  )}
                 </div>
               </article>
             </li>

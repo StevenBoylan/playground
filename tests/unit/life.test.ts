@@ -25,18 +25,27 @@ describe("evaluating offers", () => {
     for (const s of evaluate(lifeData, all()).shown) expect(s.strength).toBeGreaterThanOrEqual(MIN_STRENGTH);
   });
 
-  it("holds back offers over the low-cost limit while that preference is on, and shows them when it is off", () => {
+  it("shortlists a flagged over-limit offer while the money rules are on, and releases it when they are off", () => {
     const on = evaluate(lifeData, all());
-    expect(on.withheld.some((w) => w.reason === "budget")).toBe(true);
-    expect(on.shown.every((s) => s.offer.price <= lifeData.budgetCap)).toBe(true);
+    const trip = on.shown.find((s) => s.offer.id === "o-cyprus");
+    expect(trip?.held).toContain("over my");
+    expect(on.shown.filter((s) => !s.offer.shortlistOnBudget).every((s) => s.offer.price <= lifeData.budgetCap)).toBe(true);
     const off = evaluate(lifeData, without(lifeData.budgetSourceId));
-    expect(off.shown.some((s) => s.offer.price > lifeData.budgetCap)).toBe(true);
+    expect(off.shown.find((s) => s.offer.id === "o-cyprus")?.held).toBeUndefined();
+  });
+
+  it("hides an over-limit offer that is not marked for shortlisting", () => {
+    const data = { ...lifeData, offers: lifeData.offers.map((o) => (o.id === "o-cyprus" ? { ...o, shortlistOnBudget: false } : o)) };
+    const result = evaluate(data, all());
+    expect(result.shown.find((s) => s.offer.id === "o-cyprus")).toBeUndefined();
+    expect(result.withheld.find((w) => w.offer.id === "o-cyprus")?.reason).toBe("budget");
   });
 
   it("removes offers that depended on a source when it is switched off", () => {
     const base = evaluate(lifeData, all()).shown.map((s) => s.offer.id);
     const noCalendar = evaluate(lifeData, without("calendar"));
     expect(noCalendar.shown.length).toBeLessThan(base.length);
+    expect(noCalendar.shown.some((s) => s.offer.id === "o-5k")).toBe(false);
     expect(noCalendar.withheld.some((w) => w.reason === "evidence" && w.detail.includes("Google Calendar"))).toBe(true);
   });
 
@@ -70,11 +79,11 @@ describe("loading exported life data", () => {
 
 describe("flags the source agents did not raise", () => {
   it("count as missing evidence instead of disappearing from the sum", () => {
-    const data = { ...lifeData, flags: lifeData.flags.map((f) => (f.sourceId === "calendar" ? { ...f, raised: false } : f)) };
+    const data = { ...lifeData, flags: lifeData.flags.map((f) => (f.id === "c-sat" ? { ...f, raised: false } : f)) };
     const result = evaluate(data, all());
-    const walk = result.withheld.find((w) => w.offer.id === "o-walk");
-    expect(walk?.reason).toBe("evidence");
-    expect(walk?.detail).toBe("Not enough supporting signals were raised.");
-    expect(result.shown.find((s) => s.offer.id === "o-walk")).toBeUndefined();
+    const run = result.withheld.find((w) => w.offer.id === "o-5k");
+    expect(run?.reason).toBe("evidence");
+    expect(run?.detail).toBe("Not enough supporting signals were raised.");
+    expect(result.shown.find((s) => s.offer.id === "o-5k")).toBeUndefined();
   });
 });

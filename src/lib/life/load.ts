@@ -11,7 +11,7 @@ const Schema = z.object({
   budgetSourceId: z.string(),
   categories: z.array(z.object({ id: z.string(), label: z.string() })).max(12),
   sources: z.array(z.object({ id: z.string(), name: z.string(), role: z.string(), sees: z.string(), neverSees: z.string() })).max(12),
-  flags: z.array(z.object({ id: z.string(), sourceId: z.string(), short: z.string(), label: z.string(), sensitivity: Sensitivity, raised: z.boolean().optional() })).max(60),
+  flags: z.array(z.object({ id: z.string(), sourceId: z.string(), short: z.string(), label: z.string(), sensitivity: Sensitivity, raised: z.boolean().optional(), weeksAgo: z.number().nonnegative().optional() })).max(60),
   intents: z.array(z.object({ id: z.string(), label: z.string(), summary: z.string() })).max(12),
   offers: z
     .array(
@@ -27,6 +27,7 @@ const Schema = z.object({
         intentId: z.string(),
         flags: z.array(z.object({ flagId: z.string(), weight: z.number().positive() })).min(1),
         reasoning: z.string(),
+        shortlistOnBudget: z.boolean().optional(),
       }),
     )
     .max(60),

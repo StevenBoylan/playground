@@ -22,6 +22,8 @@ export interface Flag {
   sensitivity: Sensitivity;
   /** False when the source agent looked and did not raise this flag. Absent means raised. */
   raised?: boolean;
+  /** How many weeks ago the signal first appeared. Used to show the evidence building up over time. */
+  weeksAgo?: number;
 }
 
 export interface Intent {
@@ -42,7 +44,7 @@ export interface Offer {
   /** Fictional. */
   merchant: string;
   blurb: string;
-  /** Whole pounds; 0 is free. */
+  /** Whole euros; 0 is free. */
   price: number;
   was?: number;
   ends: string;
@@ -51,6 +53,8 @@ export interface Offer {
   flags: { flagId: string; weight: number }[];
   /** The commerce agent's reasoning, in its own words. */
   reasoning: string;
+  /** When over the low-cost limit, keep the offer on a shortlist for approval instead of hiding it. */
+  shortlistOnBudget?: boolean;
 }
 
 export interface LifeData {

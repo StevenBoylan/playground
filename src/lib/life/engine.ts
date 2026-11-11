@@ -9,6 +9,8 @@ export interface ShownOffer {
   strength: number;
   active: Flag[];
   missing: Flag[];
+  /** Set when the offer is on the shortlist but not ready to act on, with the reason. */
+  held?: string;
 }
 
 export interface WithheldOffer {
@@ -44,7 +46,10 @@ export function evaluate(data: LifeData, enabled: ReadonlySet<string>): Evaluati
     const active = live.map((p) => p.flag);
     const missing = parts.filter((p) => !live.includes(p)).map((p) => p.flag);
 
-    if (budgetOn && offer.price > data.budgetCap) {
+    const overBudget = budgetOn && offer.price > data.budgetCap;
+    if (overBudget && offer.shortlistOnBudget && strength >= MIN_STRENGTH) {
+      shown.push({ offer, strength, active, missing, held: `Costs €${offer.price}, over my €${data.budgetCap} limit. Shortlisted until I approve it.` });
+    } else if (overBudget) {
       withheld.push({ offer, reason: "budget", detail: `Costs €${offer.price}, over the €${data.budgetCap} low-cost limit.` });
     } else if (strength < MIN_STRENGTH) {
       const off = [...new Set(missing.filter((f) => !enabled.has(f.sourceId)).map((f) => sourceName.get(f.sourceId) ?? f.sourceId))];
