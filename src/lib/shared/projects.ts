@@ -34,7 +34,7 @@ export const projects: PlaygroundProject[] = [
     origin: {
       heading: "Where the idea came from",
       paragraphs: [
-        "Colleagues in digital marketing have been sharing their concerns about the significant fall in click-throughs from search results as AI summaries answer queries directly. This got me thinking about what comes next.",
+        "Click-throughs from search results have seen a significant fall as AI summaries answer queries directly. This got me thinking about what comes next.",
         "If people increasingly get answers and recommendations from AI without visiting a website, how will businesses reach their next customer? How can established businesses adapt, and where do the next opportunities lie?",
       ],
     },
@@ -42,6 +42,7 @@ export const projects: PlaygroundProject[] = [
       heading: "The idea",
       paragraphs: [
         "AI assistants could spot an opportunity before someone explicitly searches for it, then assemble a suitable offer for them to consider. That possibility is the starting point for Latent Intent Marketing.",
+        "This demo shows an example implementation and then walks through the wider architectural concept.",
       ],
     },
     example: {
