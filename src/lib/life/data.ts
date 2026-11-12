@@ -9,7 +9,7 @@ import type { LifeData } from "./types";
  * real versions can take the same shape.
  */
 export const lifeData: LifeData = {
-  title: "Your life offers",
+  title: "Life offers",
   note: "Illustrative signals, shaped like the data these services hold. Merchants and offers are fictional.",
   budgetCap: 100,
   budgetSourceId: "prefs",
@@ -21,28 +21,28 @@ export const lifeData: LifeData = {
     {
       id: "garmin",
       name: "Garmin Connect",
-      role: "How and how much you train",
+      role: "How and how much they train",
       sees: "Weekly distance and pace bands",
       neverSees: "GPS routes, home location, exact timestamps",
     },
     {
       id: "youtube",
       name: "YouTube",
-      role: "What you choose to watch",
+      role: "What they choose to watch",
       sees: "Topics of videos watched",
       neverSees: "Individual titles, comments, account details",
     },
     {
       id: "search",
       name: "Google Search",
-      role: "What you look up",
+      role: "What they look up",
       sees: "Broad topics, such as travel to a coastal city",
       neverSees: "Exact queries, results clicked",
     },
     {
       id: "calendar",
       name: "Google Calendar",
-      role: "When you are free",
+      role: "When they are free",
       sees: "Free and busy blocks over the next two months",
       neverSees: "Event titles, attendees, locations",
     },
@@ -50,8 +50,8 @@ export const lifeData: LifeData = {
       id: "prefs",
       name: "Money rules",
       role: "The finance agent's limits",
-      sees: "A spending limit you set yourself",
-      neverSees: "Balances, transactions, anything from your bank",
+      sees: "A spending limit they set themselves",
+      neverSees: "Balances, transactions, anything from their bank",
     },
   ],
   flags: [
@@ -60,13 +60,13 @@ export const lifeData: LifeData = {
     { id: "s-coast", sourceId: "search", short: "Looking at flights to a coastal city", label: "Searched for flights to a Mediterranean coastal city.", sensitivity: "medium", weeksAgo: 2 },
     { id: "c-april", sourceId: "calendar", short: "Free weekend in April", label: "A free weekend opens up in April, after a busy stretch.", sensitivity: "low", weeksAgo: 1 },
     { id: "c-sat", sourceId: "calendar", short: "Saturday free", label: "Saturday morning is free.", sensitivity: "low", weeksAgo: 0 },
-    { id: "p-limit", sourceId: "prefs", short: "Spending limit set", label: "You have set a firm limit on one-off spending.", sensitivity: "medium", weeksAgo: 0 },
+    { id: "p-limit", sourceId: "prefs", short: "Spending limit set", label: "They have set a firm limit on one-off spending.", sensitivity: "medium", weeksAgo: 0 },
   ],
   intents: [
     {
       id: "i-race",
       label: "Run a half marathon abroad",
-      summary: "Training volume, race content, coastal-city searches and a free weekend all point the same way. You have not said so yourself.",
+      summary: "Training volume, race content, coastal-city searches and a free weekend all point the same way. They have not said so themselves.",
     },
     { id: "i-base", label: "Build a running base", summary: "Distance is rising and a Saturday is free, so the next step is consistency." },
   ],
@@ -89,7 +89,7 @@ export const lifeData: LifeData = {
       ],
       shortlistOnBudget: true,
       reasoning:
-        "No single signal asks for this. Together they do: your training is climbing, you have been watching race content and looking at coastal flights, and a weekend is free. The finance agent holds it for approval because it is over the spending limit you set.",
+        "No single signal asks for this. Together they do: their training is climbing, they have been watching race content and looking at coastal flights, and a weekend is free. The finance agent holds it for approval because it is over the spending limit they set.",
     },
     {
       id: "o-plan",
@@ -105,7 +105,7 @@ export const lifeData: LifeData = {
         { flagId: "y-doc", weight: 0.25 },
         { flagId: "p-limit", weight: 0.25 },
       ],
-      reasoning: "The same intent, but within your spending limit. The finance agent proposes it as the stepping stone while the trip waits.",
+      reasoning: "The same intent, but within their spending limit. The finance agent proposes it as the stepping stone while the trip waits.",
     },
     {
       id: "o-5k",

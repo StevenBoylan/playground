@@ -121,7 +121,7 @@ function EvidenceBuild({ item }: { item: ShownOffer }) {
   });
   return (
     <div className="mt-3 rounded-2xl bg-surface-2 p-3">
-      <p className="text-xs font-bold uppercase tracking-wide text-ink">Your intent building over {start} weeks</p>
+      <p className="text-xs font-bold uppercase tracking-wide text-ink">Intent building over {start} weeks</p>
       <div className="mt-2 flex h-16 items-end gap-1" role="img" aria-label={`Match rising from ${points[0].pct}% to ${points[points.length - 1].pct}%`}>
         {points.map((p) => (
           <div key={p.weeksAgo} className="flex-1 rounded-t bg-accent" style={{ height: `${Math.max(p.pct, 4)}%`, opacity: 0.35 + p.pct / 160 }} title={`${p.weeksAgo === 0 ? "Now" : `${p.weeksAgo} weeks ago`}: ${p.pct}%`} />
@@ -202,7 +202,7 @@ function OfferCard({ data, item, best }: { data: LifeData; item: ShownOffer; bes
           onClick={() => setOpen((v) => !v)}
           className="focus-ring mt-4 w-full rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white"
         >
-          {open ? "Hide why you're seeing this" : "Why you're seeing this"}
+          {open ? "Hide why this is shown" : "Why is this shown?"}
         </button>
         <div id={panelId} hidden={!open}>
           {open && <Trace data={data} item={item} />}
@@ -326,7 +326,7 @@ export function LifeApp({ data }: { data: LifeData }) {
 
               <details className="mt-4 rounded-2xl border border-line bg-surface p-3">
                 <summary className="focus-ring cursor-pointer rounded text-sm font-bold">
-                  Your data sources <span className="font-normal text-muted">({enabled.size} of {data.sources.length} on)</span>
+                  Data sources <span className="font-normal text-muted">({enabled.size} of {data.sources.length} on)</span>
                 </summary>
                 <p className="mt-2 text-xs text-muted">Switch one off and watch the offers that depended on it change.</p>
                 <div className="mt-3">
@@ -359,8 +359,8 @@ export function LifeApp({ data }: { data: LifeData }) {
                   {[
                     ["Source agents", "One per service. Each reads only what it is allowed to and raises coarse flags."],
                     ["Flags", "Short statements such as “mileage rising”, never raw records."],
-                    ["Intent agent", "Combines flags from different sources into a latent intent, before you have searched for anything."],
-                    ["Commerce agent", `Builds offers for those intents, and holds back anything that lacks evidence (under ${Math.round(MIN_STRENGTH * 100)}% of it available) or breaks the rules you set.`],
+                    ["Intent agent", "Combines flags from different sources into a latent intent, before they have searched for anything."],
+                    ["Commerce agent", `Builds offers for those intents, and holds back anything that lacks evidence (under ${Math.round(MIN_STRENGTH * 100)}% of it available) or breaks the rules they set.`],
                   ].map(([title, body], i) => (
                     <li key={title} className="card flex gap-3 p-3">
                       <span aria-hidden="true" className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-bold text-white">
@@ -376,7 +376,7 @@ export function LifeApp({ data }: { data: LifeData }) {
 
               <section>
                 <h2 className="text-xl font-extrabold tracking-tight">Sources</h2>
-                <p className="mt-1 text-sm text-muted">You are in control. Switching a source off removes its flags straight away.</p>
+                <p className="mt-1 text-sm text-muted">The user is in control. Switching a source off removes its flags straight away.</p>
                 <div className="mt-3">
                   <SourceSwitches data={data} enabled={enabled} onToggle={toggle} />
                 </div>

@@ -33,7 +33,7 @@ export default function PaaConceptPage() {
 
         <div className="card mt-10 overflow-hidden p-2 sm:p-3">
           <Image
-            src="/paa/layers.gif"
+            src="/paa-layers.gif"
             alt="Animation of the layers of Post-Application Architecture: a request, AI coordination, services and policies, and the interface assembled for the task."
             width={1280}
             height={1060}
