@@ -57,24 +57,24 @@ export default function LifePage() {
               </li>
             ))}
           </ol>
-          <section className="card mt-10 max-w-xl p-5 sm:p-6" aria-labelledby="demo-heading">
-            <h2 id="demo-heading" className="text-lg font-semibold tracking-tight">
-              Go behind the scenes
-            </h2>
-            <p className="mt-2 text-sm leading-relaxed text-muted">
-              This is one application of LIM. If you want to see what happens underneath, and get an idea of the LIM concept and proposed ecosystem, with the signals, the intents and the technical detail, jump into the live demo.
-            </p>
-            <a
-              href="/lim"
-              className="focus-ring mt-4 inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white shadow-sm"
-              style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-end))" }}
-            >
-              Jump into the live demo
-              <span aria-hidden="true">→</span>
-            </a>
-          </section>
         </div>
         <LifeApp data={lifeData} />
+        <section className="card p-5 sm:p-8 lg:col-span-2" aria-labelledby="demo-heading">
+          <h2 id="demo-heading" className="text-lg font-semibold tracking-tight">
+            Go behind the scenes
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted">
+            This is one application of LIM. If you want to see what happens underneath, and get an idea of the LIM concept and proposed ecosystem, with the signals, the intents and the technical detail, jump into the live demo.
+          </p>
+          <a
+            href="/lim"
+            className="focus-ring mt-4 inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white shadow-sm"
+            style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-end))" }}
+          >
+            Live demo
+            <span aria-hidden="true">→</span>
+          </a>
+        </section>
       </div>
     </main>
   );
