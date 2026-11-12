@@ -34,15 +34,15 @@ export const projects: PlaygroundProject[] = [
     origin: {
       heading: "Where the idea came from",
       paragraphs: [
-        "Click-throughs from search results have seen a significant fall as AI summaries answer queries directly. This got me thinking about what comes next.",
-        "If people increasingly get answers and recommendations from AI without visiting a website, how will businesses reach their next customer? How can established businesses adapt, and where do the next opportunities lie?",
+        "Click-throughs from search results are falling significantly as AI summaries answer queries directly. This got me thinking about what comes next.",
+        "If people get answers and recommendations from AI without visiting a website, how will businesses reach their next customer, and where do the next opportunities lie?",
       ],
     },
     idea: {
       heading: "The idea",
       paragraphs: [
         "AI assistants could spot an opportunity before someone explicitly searches for it, then assemble a suitable offer for them to consider. That possibility is the starting point for Latent Intent Marketing.",
-        "This demo shows an example implementation and then walks through the wider architectural concept.",
+        "See an example interpretation, then dig into the architecture and ecosystem behind LIM.",
       ],
     },
     example: {
